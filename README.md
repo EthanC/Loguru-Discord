@@ -30,21 +30,14 @@ The following code is a complete example which demonstrates:
 
 ```py
 from loguru import logger
-
 from loguru_discord import DiscordSink
 
-logger.add(
-    DiscordSink(
-        "https://discord.com/api/webhooks/00000000/XXXXXXXX",
-        embed=True
-    ),
-    level="WARNING",
-)
+logger.add(DiscordSink("https://discord.com/api/webhooks/00000000/XXXXXXXX"))
 
 try:
     value: float = 1 / 0
 except Exception as e:
-    logger.opt(exception=e).error("Lorem ipsum dolor sit amet.")
+    logger.opt(exception=e).error("Lorem ipsum dolor sit amet")
 ```
 
 ## Customization
