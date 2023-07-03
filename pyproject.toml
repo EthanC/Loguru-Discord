@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "loguru-discord"
-version = "1.0.2"
+version = "1.0.3"
 description = "Lightweight, easy-to-use Discord sink for Loguru."
 authors = ["EthanC <16727756+EthanC@users.noreply.github.com>"]
 license = "MIT"
@@ -22,7 +22,6 @@ packages = [{ include = "loguru_discord" }]
 
 [tool.poetry.urls]
 "Twitter" = "https://twitter.com/Mxtive"
-"Changelog" = "https://github.com/EthanC/Loguru-Discord/releases"
 "Issue Tracker" = "https://github.com/EthanC/Loguru-Discord/issues"
 
 [tool.poetry.dependencies]

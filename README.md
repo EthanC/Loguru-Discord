@@ -1,5 +1,7 @@
 # Loguru-Discord
 
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/loguru-discord?label=Python) ![PyPI - Status](https://img.shields.io/pypi/status/loguru-discord?label=PyPI%20Status) ![PyPI - Downloads](https://img.shields.io/pypi/dm/loguru-discord?label=PyPI%20Downloads)
+
 Lightweight, easy-to-use [Discord](https://discord.com/) sink for [Loguru](https://github.com/Delgan/loguru).
 
 <p align="center">
@@ -51,8 +53,6 @@ Upon constructing your handler, the following optional customizations are availa
 ## Releases
 
 Loguru-Discord follows [Semantic Versioning](https://semver.org/) for tagging releases of the project.
-
-Changelogs can be found on the [Releases](https://github.com/EthanC/Loguru-Discord/releases) page in the [Keep a Changelog](https://keepachangelog.com/) format.
 
 ## Contributing
 
