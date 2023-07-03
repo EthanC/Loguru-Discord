@@ -136,19 +136,10 @@ class TestSink(TestCase):
         Test the emit method with the following conditions.
 
         Level: `logging.INFO`
-        Username: Modified
-        Avatar URL: Modified
         Embed: Enabled
-        Traceback: Disabled
         """
 
-        sink: DiscordSink = DiscordSink(
-            self.webhookUrl,
-            username="Custom",
-            avatarUrl="https://i.imgur.com/7xeGMSf.png",
-            embed=True,
-            trace=False,
-        )
+        sink: DiscordSink = DiscordSink(self.webhookUrl, embed=True)
         record: Optional[LogRecord] = None
 
         try:

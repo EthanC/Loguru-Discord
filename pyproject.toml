@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "loguru-discord"
-version = "1.0.0"
+version = "1.0.1"
 description = "Lightweight, easy-to-use Discord sink for Loguru."
 authors = ["EthanC <16727756+EthanC@users.noreply.github.com>"]
 license = "MIT"

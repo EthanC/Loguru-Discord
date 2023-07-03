@@ -1,5 +1,4 @@
 import logging
-import traceback
 from logging import Handler, LogRecord
 from typing import Optional, Self
 
@@ -16,7 +15,6 @@ class DiscordSink(Handler):
         username: Optional[str] = None,
         avatarUrl: Optional[str] = None,
         embed: bool = False,
-        trace: bool = True,
     ) -> None:
         """
         Initialize a DiscordSink instance.
@@ -30,8 +28,6 @@ class DiscordSink(Handler):
                 Default is `None` (determined by Discord.)
             `embed` (`bool`, optional): A toggle to use the Discord Embed format.
                 Default is `False`.
-            `trace` (`bool`, optional): A toggle to include tracebacks in the log message.
-                Default is `True`.
         """
 
         super().__init__()
@@ -40,7 +36,6 @@ class DiscordSink(Handler):
         self.username: Optional[str] = username
         self.avatarUrl: Optional[str] = avatarUrl
         self.embed: bool = embed
-        self.trace: bool = trace
 
         self.webhook: DiscordWebhook = DiscordWebhook(
             self.webhookUrl,
@@ -64,10 +59,6 @@ class DiscordSink(Handler):
         """
 
         message: str = record.getMessage()
-        details: str = "".join(traceback.format_exception(*record.exc_info))
-
-        if (self.trace) and (record.exc_info):
-            message += f"\n\n{details}"
 
         if not self.embed:
             self.webhook.set_content(f"```py\n{message[:1990]}\n```")

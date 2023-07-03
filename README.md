@@ -43,8 +43,8 @@ logger.add(
 
 try:
     value: float = 1 / 0
-except Exception as ex:
-    logger.error("Lorem ipsum dolor sit amet.", e=ex)
+except Exception as e:
+    logger.opt(exception=e).error("Lorem ipsum dolor sit amet.")
 ```
 
 ## Customization
@@ -54,7 +54,6 @@ Upon constructing your handler, the following optional customizations are availa
 -   **Username**: Username to use for the Discord Webhook message.
 -   **Avatar**: Image URL to use for the Discord Webhook message.
 -   **Embed**: Toggle whether to use plain codeblock formatting or rich embeds.
--   **Trace**: Toggle whether or not to include tracebacks (where available).
 
 ## Releases
 
