@@ -1,0 +1,37 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - "main"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v3
+      -
+        name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+      -
+        name: Install Poetry
+        run: |
+          pip install poetry
+      -
+        name: Build and Test
+        run: |
+          poetry install --no-interaction --no-ansi
+          poetry run pytest
+      -
+        name: Publish to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.TWINE_TOKEN }}
+        run: |
+          poetry build
+          pip install twine
+          twine upload dist/*
