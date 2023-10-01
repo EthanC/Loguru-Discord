@@ -1,6 +1,6 @@
 import logging
 from logging import Handler, LogRecord
-from typing import Optional, Self
+from typing import List, Optional, Self, Any
 
 from discord_webhook import DiscordEmbed, DiscordWebhook
 
@@ -15,6 +15,7 @@ class DiscordSink(Handler):
         username: Optional[str] = None,
         avatarUrl: Optional[str] = None,
         embed: bool = False,
+        suppress: List[Any] = [],
     ) -> None:
         """
         Initialize a DiscordSink instance.
@@ -28,6 +29,8 @@ class DiscordSink(Handler):
                 Default is `None` (determined by Discord.)
             `embed` (`bool`, optional): A toggle to use the Discord Embed format.
                 Default is `False`.
+            `suppress` (`list`, optional): An array of Exception types to ignore.
+                Default is empty.
         """
 
         super().__init__()
@@ -36,6 +39,7 @@ class DiscordSink(Handler):
         self.username: Optional[str] = username
         self.avatarUrl: Optional[str] = avatarUrl
         self.embed: bool = embed
+        self.suppress: List[Any] = suppress
 
         self.webhook: DiscordWebhook = DiscordWebhook(
             self.webhookUrl,
@@ -54,9 +58,16 @@ class DiscordSink(Handler):
         - Messages: https://discord.com/developers/docs/resources/webhook#execute-webhook-jsonform-params
         - Embeds: https://discord.com/developers/docs/resources/channel#embed-object-embed-limits
 
-        Ars:
+        Args:
             `record` (`logging.LogRecord`): Log record to send.
         """
+
+        try:
+            # Get Exception type from exc_info tuple
+            if record.exc_info[0] in self.suppress:
+                return
+        except Exception:
+            pass
 
         message: str = record.getMessage()
 

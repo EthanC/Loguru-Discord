@@ -183,6 +183,33 @@ class TestSink(TestCase):
 
         sink.emit(record)
 
+    def test_emit_suppressed(self: Self) -> None:
+        """
+        Test the emit method with the following conditions.
+
+        Level: `logging.CRITICAL`
+        Format: Default
+        Suppress: ZeroDevisionError
+        """
+
+        sink: DiscordSink = DiscordSink(self.webhookUrl, suppress=[ZeroDivisionError])
+        record: Optional[LogRecord] = None
+
+        try:
+            _: float = 1 / 0
+        except ZeroDivisionError:
+            record = LogRecord(
+                "test_emit_suppressed",
+                logging.CRITICAL,
+                "/tests/test_sink.py",
+                1,
+                "ZeroDivisionError: This Exception should not be sent to Discord.",
+                None,
+                sys.exc_info(),
+            )
+
+        sink.emit(record)
+
 
 if __name__ == "__main__":
     unittest.main()

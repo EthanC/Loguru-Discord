@@ -49,6 +49,7 @@ Upon constructing your handler, the following optional customizations are availa
 -   **Username**: Username to use for the Discord Webhook message.
 -   **Avatar**: Image URL to use for the Discord Webhook message.
 -   **Embed**: Toggle whether to use plain codeblock formatting or rich embeds.
+-   **Suppress**: Prevent specific Exception types from being sent to Discord.
 
 ## Releases
 
@@ -56,4 +57,4 @@ Loguru-Discord follows [Semantic Versioning](https://semver.org/) for tagging re
 
 ## Contributing
 
-Bug fixes and optimizations are always welcome. See [`CONTRIBUTING.md`](https://github.com/EthanC/CallofDuty.py/blob/master/.github/CONTRIBUTING.md) for details.
+Bug fixes and optimizations are always welcome. See [`CONTRIBUTING.md`](https://github.com/EthanC/Loguru-Discord/blob/master/.github/CONTRIBUTING.md) for details.
