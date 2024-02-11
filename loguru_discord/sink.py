@@ -1,6 +1,6 @@
 import logging
 from logging import Handler, LogRecord
-from typing import List, Optional, Self, Any
+from typing import Any, Self
 
 from discord_webhook import DiscordEmbed, DiscordWebhook
 
@@ -12,10 +12,10 @@ class DiscordSink(Handler):
         self: Self,
         webhookUrl: str,
         *,
-        username: Optional[str] = None,
-        avatarUrl: Optional[str] = None,
+        username: str | None = None,
+        avatarUrl: str | None = None,
         embed: bool = False,
-        suppress: List[Any] = [],
+        suppress: list[Any] = [],
     ) -> None:
         """
         Initialize a DiscordSink instance.
@@ -36,10 +36,10 @@ class DiscordSink(Handler):
         super().__init__()
 
         self.webhookUrl: str = webhookUrl
-        self.username: Optional[str] = username
-        self.avatarUrl: Optional[str] = avatarUrl
+        self.username: str | None = username
+        self.avatarUrl: str | None = avatarUrl
         self.embed: bool = embed
-        self.suppress: List[Any] = suppress
+        self.suppress: list[Any] = suppress
 
         self.webhook: DiscordWebhook = DiscordWebhook(
             self.webhookUrl,
@@ -72,6 +72,7 @@ class DiscordSink(Handler):
         message: str = record.getMessage()
 
         if not self.embed:
+            # Content value is restricted to defined character limit.
             self.webhook.set_content(f"```py\n{message[:1990]}\n```")
         else:
             embed: DiscordEmbed = DiscordEmbed()
@@ -92,10 +93,12 @@ class DiscordSink(Handler):
                 case _:
                     pass
 
-            embed.set_title(record.levelname)
+            # Field values are restricted to defined character limits.
+            # https://discord.com/developers/docs/resources/channel#embed-object-embed-limits
+            embed.set_title(record.levelname[:256])
             embed.set_description(f"```py\n{message[:4086]}\n```")
             embed.set_footer(
-                text=f"{record.filename}:{record.lineno}",
+                text=f"{record.filename[:2040]}:{record.lineno:,}",
                 icon_url="https://i.imgur.com/7xeGMSf.png",
             )
             embed.set_timestamp(record.created)

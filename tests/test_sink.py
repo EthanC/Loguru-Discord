@@ -2,7 +2,7 @@ import logging
 import sys
 import unittest
 from logging import LogRecord
-from typing import Optional, Self
+from typing import Self
 from unittest import TestCase
 
 from loguru_discord import DiscordSink
@@ -11,7 +11,7 @@ from loguru_discord import DiscordSink
 class TestSink(TestCase):
     """Test case for the DiscordSink class."""
 
-    def setUp(self) -> None:
+    def setUp(self: Self) -> None:
         """Prepare to run tests."""
 
         self.webhookUrl: str = "https://discord.com/api/webhooks/000000000000000000/XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
@@ -26,7 +26,7 @@ class TestSink(TestCase):
         """
 
         sink: DiscordSink = DiscordSink(self.webhookUrl)
-        record: Optional[LogRecord] = None
+        record: LogRecord | None = None
 
         try:
             _: float = 1 / 0
@@ -52,7 +52,7 @@ class TestSink(TestCase):
         """
 
         sink: DiscordSink = DiscordSink(self.webhookUrl, embed=True)
-        record: Optional[LogRecord] = None
+        record: LogRecord | None = None
 
         try:
             _: float = 1 / 0
@@ -81,7 +81,7 @@ class TestSink(TestCase):
         sink: DiscordSink = DiscordSink(
             self.webhookUrl, username="Custom Username", embed=True
         )
-        record: Optional[LogRecord] = None
+        record: LogRecord | None = None
 
         try:
             _: float = 1 / 0
@@ -114,7 +114,7 @@ class TestSink(TestCase):
             avatarUrl="https://i.imgur.com/7xeGMSf.png",
             embed=True,
         )
-        record: Optional[LogRecord] = None
+        record: LogRecord | None = None
 
         try:
             _: float = 1 / 0
@@ -140,7 +140,7 @@ class TestSink(TestCase):
         """
 
         sink: DiscordSink = DiscordSink(self.webhookUrl, embed=True)
-        record: Optional[LogRecord] = None
+        record: LogRecord | None = None
 
         try:
             _: float = 1 / 0
@@ -166,7 +166,7 @@ class TestSink(TestCase):
         """
 
         sink: DiscordSink = DiscordSink(self.webhookUrl, embed=True)
-        record: Optional[LogRecord] = None
+        record: LogRecord | None = None
 
         try:
             _: float = 1 / 0
@@ -193,7 +193,7 @@ class TestSink(TestCase):
         """
 
         sink: DiscordSink = DiscordSink(self.webhookUrl, suppress=[ZeroDivisionError])
-        record: Optional[LogRecord] = None
+        record: LogRecord | None = None
 
         try:
             _: float = 1 / 0
