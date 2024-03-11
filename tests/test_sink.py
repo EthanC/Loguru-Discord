@@ -183,6 +183,110 @@ class TestSink(TestCase):
 
         sink.emit(record)
 
+    def test_emit_embed_long(self: Self) -> None:
+        """
+        Test the emit method with the following conditions
+
+        Message: Exceeds length limit
+        Embed: Enabled
+        """
+
+        sink: DiscordSink = DiscordSink(self.webhookUrl, embed=True)
+        record: LogRecord | None = None
+
+        try:
+            _: float = 1 / 0
+        except ZeroDivisionError:
+            record = LogRecord(
+                "test_emit_embed_long",
+                logging.ERROR,
+                "/tests/test_sink.py",
+                1,
+                self.testMessage * 25,
+                None,
+                sys.exc_info(),
+            )
+
+        sink.emit(record)
+
+    def test_emit_embed_long_truncate(self: Self) -> None:
+        """
+        Test the emit method with the following conditions
+
+        Message: Exceeds length limit
+        Embed: Enabled
+        Truncate: Enabled
+        """
+
+        sink: DiscordSink = DiscordSink(self.webhookUrl, embed=True, truncate=True)
+        record: LogRecord | None = None
+
+        try:
+            _: float = 1 / 0
+        except ZeroDivisionError:
+            record = LogRecord(
+                "test_emit_embed_long_truncate",
+                logging.ERROR,
+                "/tests/test_sink.py",
+                1,
+                self.testMessage * 25,
+                None,
+                sys.exc_info(),
+            )
+
+        sink.emit(record)
+
+    def test_emit_long(self: Self) -> None:
+        """
+        Test the emit method with the following conditions.
+
+        Message: Exceeds length limit
+        """
+
+        sink: DiscordSink = DiscordSink(self.webhookUrl)
+        record: LogRecord | None = None
+
+        try:
+            _: float = 1 / 0
+        except ZeroDivisionError:
+            record = LogRecord(
+                "test_emit_long",
+                logging.ERROR,
+                "/tests/test_sink.py",
+                1,
+                self.testMessage * 25,
+                None,
+                sys.exc_info(),
+            )
+
+        sink.emit(record)
+
+    def test_emit_long_truncate(self: Self) -> None:
+        """
+        Test the emit method with the following conditions.
+
+        Message: Exceeds length limit
+        Truncate: Enabled
+        """
+
+        sink: DiscordSink = DiscordSink(self.webhookUrl, truncate=True)
+        record: LogRecord | None = None
+
+        try:
+            _: float = 1 / 0
+        except ZeroDivisionError:
+            record = LogRecord(
+                "test_emit_long_truncate",
+                logging.ERROR,
+                "/tests/test_sink.py",
+                1,
+                self.testMessage * 25,
+                None,
+                sys.exc_info(),
+            )
+
+        sink.emit(record)
+
     def test_emit_suppressed(self: Self) -> None:
         """
         Test the emit method with the following conditions.

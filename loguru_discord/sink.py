@@ -15,6 +15,7 @@ class DiscordSink(Handler):
         username: str | None = None,
         avatarUrl: str | None = None,
         embed: bool = False,
+        truncate: bool = False,
         suppress: list[Any] = [],
     ) -> None:
         """
@@ -29,6 +30,8 @@ class DiscordSink(Handler):
                 Default is `None` (determined by Discord.)
             `embed` (`bool`, optional): A toggle to use the Discord Embed format.
                 Default is `False`.
+            `truncate` (`bool`, optional): A toggle to trim lengthy logs.
+                Default is `False`.
             `suppress` (`list`, optional): An array of Exception types to ignore.
                 Default is empty.
         """
@@ -39,6 +42,7 @@ class DiscordSink(Handler):
         self.username: str | None = username
         self.avatarUrl: str | None = avatarUrl
         self.embed: bool = embed
+        self.truncate: bool = truncate
         self.suppress: list[Any] = suppress
 
         self.webhook: DiscordWebhook = DiscordWebhook(
@@ -62,6 +66,11 @@ class DiscordSink(Handler):
             `record` (`logging.LogRecord`): Log record to send.
         """
 
+        maxMessage: int = 1987
+        maxEmbedTitle: int = 256
+        maxEmbedDesc: int = 4083
+        maxEmbedFooter: int = 2040
+
         try:
             # Get Exception type from exc_info tuple
             if record.exc_info[0] in self.suppress:
@@ -72,8 +81,13 @@ class DiscordSink(Handler):
         message: str = record.getMessage()
 
         if not self.embed:
-            # Content value is restricted to defined character limit.
-            self.webhook.set_content(f"```py\n{message[:1990]}\n```")
+            if len(message) > maxMessage:
+                if self.truncate:
+                    self.webhook.set_content(f"```py\n{message[:maxMessage]}...\n```")
+                else:
+                    self.webhook.add_file(message.encode(), "log.txt")
+            else:
+                self.webhook.set_content(f"```py\n{message}\n```")
         else:
             embed: DiscordEmbed = DiscordEmbed()
 
@@ -93,15 +107,20 @@ class DiscordSink(Handler):
                 case _:
                     pass
 
-            # Field values are restricted to defined character limits.
-            # https://discord.com/developers/docs/resources/channel#embed-object-embed-limits
-            embed.set_title(record.levelname[:256])
-            embed.set_description(f"```py\n{message[:4086]}\n```")
+            embed.set_title(record.levelname[:maxEmbedTitle])
             embed.set_footer(
-                text=f"{record.filename[:2040]}:{record.lineno:,}",
+                text=f"{record.filename[:maxEmbedFooter]}:{record.lineno:,}",
                 icon_url="https://i.imgur.com/7xeGMSf.png",
             )
             embed.set_timestamp(record.created)
+
+            if len(message) > maxMessage:
+                if self.truncate:
+                    embed.set_description(f"```py\n{message[:maxEmbedDesc]}...\n```")
+                else:
+                    self.webhook.add_file(message.encode(), "log.txt")
+            else:
+                embed.set_description(f"```py\n{message}\n```")
 
             self.webhook.add_embed(embed)
 
