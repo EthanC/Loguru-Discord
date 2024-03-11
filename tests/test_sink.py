@@ -2,6 +2,7 @@ import logging
 import sys
 import unittest
 from logging import LogRecord
+from time import sleep
 from typing import Self
 from unittest import TestCase
 
@@ -24,6 +25,8 @@ class TestSink(TestCase):
         Level: `logging.CRITICAL`
         Format: Default
         """
+
+        sleep(3)
 
         sink: DiscordSink = DiscordSink(self.webhookUrl)
         record: LogRecord | None = None
@@ -51,6 +54,8 @@ class TestSink(TestCase):
         Embed: Enabled
         """
 
+        sleep(3)
+
         sink: DiscordSink = DiscordSink(self.webhookUrl, embed=True)
         record: LogRecord | None = None
 
@@ -77,6 +82,8 @@ class TestSink(TestCase):
         Username: Modified
         Embed: Enabled
         """
+
+        sleep(3)
 
         sink: DiscordSink = DiscordSink(
             self.webhookUrl, username="Custom Username", embed=True
@@ -107,6 +114,8 @@ class TestSink(TestCase):
         Avatar URL: Modified
         Embed: Enabled
         """
+
+        sleep(3)
 
         sink: DiscordSink = DiscordSink(
             self.webhookUrl,
@@ -139,6 +148,8 @@ class TestSink(TestCase):
         Embed: Enabled
         """
 
+        sleep(3)
+
         sink: DiscordSink = DiscordSink(self.webhookUrl, embed=True)
         record: LogRecord | None = None
 
@@ -165,6 +176,8 @@ class TestSink(TestCase):
         Embed: Enabled
         """
 
+        sleep(3)
+
         sink: DiscordSink = DiscordSink(self.webhookUrl, embed=True)
         record: LogRecord | None = None
 
@@ -190,6 +203,8 @@ class TestSink(TestCase):
         Message: Exceeds length limit
         Embed: Enabled
         """
+
+        sleep(3)
 
         sink: DiscordSink = DiscordSink(self.webhookUrl, embed=True)
         record: LogRecord | None = None
@@ -218,6 +233,8 @@ class TestSink(TestCase):
         Truncate: Enabled
         """
 
+        sleep(3)
+
         sink: DiscordSink = DiscordSink(self.webhookUrl, embed=True, truncate=True)
         record: LogRecord | None = None
 
@@ -242,6 +259,8 @@ class TestSink(TestCase):
 
         Message: Exceeds length limit
         """
+
+        sleep(3)
 
         sink: DiscordSink = DiscordSink(self.webhookUrl)
         record: LogRecord | None = None
@@ -269,6 +288,8 @@ class TestSink(TestCase):
         Truncate: Enabled
         """
 
+        sleep(3)
+
         sink: DiscordSink = DiscordSink(self.webhookUrl, truncate=True)
         record: LogRecord | None = None
 
@@ -295,6 +316,8 @@ class TestSink(TestCase):
         Format: Default
         Suppress: ZeroDevisionError
         """
+
+        sleep(3)
 
         sink: DiscordSink = DiscordSink(self.webhookUrl, suppress=[ZeroDivisionError])
         record: LogRecord | None = None
