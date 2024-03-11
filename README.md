@@ -14,7 +14,7 @@ Construct a handler with your preferred options, then add a new sink to Loguru.
 
 ### Installation
 
-Support is guaranteed only for Python 3.11 or greater.
+Support is guaranteed only for Python 3.12 or greater.
 
 Once this requirement is met, simply install via your package manager of choice.
 
@@ -49,6 +49,7 @@ Upon constructing your handler, the following optional customizations are availa
 -   **Username**: Username to use for the Discord Webhook message.
 -   **Avatar**: Image URL to use for the Discord Webhook message.
 -   **Embed**: Toggle whether to use plain codeblock formatting or rich embeds.
+-   **Truncate**: Toggle whether to trim length logs instead of uploading as a file.
 -   **Suppress**: Prevent specific Exception types from being sent to Discord.
 
 ## Releases

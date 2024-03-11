@@ -30,7 +30,7 @@ class DiscordSink(Handler):
                 Default is `None` (determined by Discord.)
             `embed` (`bool`, optional): A toggle to use the Discord Embed format.
                 Default is `False`.
-            `truncate` (`bool`, optional): A toggle to trim lengthy logs.
+            `truncate` (`bool`, optional): A toggle to trim lengthy logs instead of uploading as a file.
                 Default is `False`.
             `suppress` (`list`, optional): An array of Exception types to ignore.
                 Default is empty.
