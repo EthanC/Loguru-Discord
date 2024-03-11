@@ -49,7 +49,7 @@ Upon constructing your handler, the following optional customizations are availa
 -   **Username**: Username to use for the Discord Webhook message.
 -   **Avatar**: Image URL to use for the Discord Webhook message.
 -   **Embed**: Toggle whether to use plain codeblock formatting or rich embeds.
--   **Truncate**: Toggle whether to trim length logs instead of uploading as a file.
+-   **Truncate**: Toggle whether to trim lengthy logs instead of uploading as a file.
 -   **Suppress**: Prevent specific Exception types from being sent to Discord.
 
 ## Releases
