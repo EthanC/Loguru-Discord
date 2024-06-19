@@ -2,7 +2,7 @@
 
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/loguru-discord?label=Python) ![PyPI - Status](https://img.shields.io/pypi/status/loguru-discord?label=PyPI%20Status) ![PyPI - Downloads](https://img.shields.io/pypi/dm/loguru-discord?label=PyPI%20Downloads)
 
-Lightweight, easy-to-use [Discord](https://discord.com/) sink for [Loguru](https://github.com/Delgan/loguru).
+Lightweight sink for [Loguru](https://github.com/Delgan/loguru) that sends logs to [Discord](https://discord.com/) via webhook.
 
 <p align="center">
     <img src="https://i.imgur.com/aS7wt4c.png" draggable="false">

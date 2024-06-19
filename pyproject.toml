@@ -1,11 +1,12 @@
 [tool.poetry]
 name = "loguru-discord"
-version = "1.3.0"
-description = "Lightweight, easy-to-use Discord sink for Loguru."
+version = "1.3.1"
+description = "Lightweight sink for Loguru that sends logs to Discord via webhook."
 authors = ["EthanC <16727756+EthanC@users.noreply.github.com>"]
+"repository" = "https://github.com/EthanC/Loguru-Discord"
 license = "MIT"
 readme = "README.md"
-keywords = ["loguru", "discord", "logging", "logger", "sink"]
+keywords = ["loguru", "discord", "logging", "webhook", "sink"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
