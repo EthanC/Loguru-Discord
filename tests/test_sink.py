@@ -44,7 +44,8 @@ class TestSink(TestCase):
                 sys.exc_info(),
             )
 
-        sink.emit(record)
+        if record:
+            sink.emit(record)
 
     def test_emit_critical_embed(self: Self) -> None:
         """
@@ -72,7 +73,8 @@ class TestSink(TestCase):
                 sys.exc_info(),
             )
 
-        sink.emit(record)
+        if record:
+            sink.emit(record)
 
     def test_emit_error_embed(self: Self) -> None:
         """
@@ -103,7 +105,8 @@ class TestSink(TestCase):
                 sys.exc_info(),
             )
 
-        sink.emit(record)
+        if record:
+            sink.emit(record)
 
     def test_emit_warning_embed(self: Self) -> None:
         """
@@ -138,7 +141,8 @@ class TestSink(TestCase):
                 sys.exc_info(),
             )
 
-        sink.emit(record)
+        if record:
+            sink.emit(record)
 
     def test_emit_info_embed(self: Self) -> None:
         """
@@ -166,7 +170,8 @@ class TestSink(TestCase):
                 sys.exc_info(),
             )
 
-        sink.emit(record)
+        if record:
+            sink.emit(record)
 
     def test_emit_debug_embed(self: Self) -> None:
         """
@@ -194,7 +199,8 @@ class TestSink(TestCase):
                 sys.exc_info(),
             )
 
-        sink.emit(record)
+        if record:
+            sink.emit(record)
 
     def test_emit_embed_long(self: Self) -> None:
         """
@@ -222,7 +228,8 @@ class TestSink(TestCase):
                 sys.exc_info(),
             )
 
-        sink.emit(record)
+        if record:
+            sink.emit(record)
 
     def test_emit_embed_long_truncate(self: Self) -> None:
         """
@@ -251,7 +258,8 @@ class TestSink(TestCase):
                 sys.exc_info(),
             )
 
-        sink.emit(record)
+        if record:
+            sink.emit(record)
 
     def test_emit_long(self: Self) -> None:
         """
@@ -278,7 +286,8 @@ class TestSink(TestCase):
                 sys.exc_info(),
             )
 
-        sink.emit(record)
+        if record:
+            sink.emit(record)
 
     def test_emit_long_truncate(self: Self) -> None:
         """
@@ -306,7 +315,8 @@ class TestSink(TestCase):
                 sys.exc_info(),
             )
 
-        sink.emit(record)
+        if record:
+            sink.emit(record)
 
     def test_emit_suppressed(self: Self) -> None:
         """
@@ -335,7 +345,8 @@ class TestSink(TestCase):
                 sys.exc_info(),
             )
 
-        sink.emit(record)
+        if record:
+            sink.emit(record)
 
 
 if __name__ == "__main__":
