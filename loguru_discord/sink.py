@@ -1,6 +1,6 @@
 import logging
 from logging import Handler, LogRecord
-from typing import Any, Self
+from typing import Any
 
 from discord_webhook import DiscordEmbed, DiscordWebhook
 
@@ -9,7 +9,7 @@ class DiscordSink(Handler):
     """Logging handler that enables sending logs to a Discord Webhook."""
 
     def __init__(
-        self: Self,
+        self,
         webhookUrl: str,
         *,
         username: str | None = None,
@@ -52,7 +52,7 @@ class DiscordSink(Handler):
             rate_limit_retry=True,
         )
 
-    def emit(self: Self, record: LogRecord) -> None:
+    def emit(self, record: LogRecord) -> None:
         """
         Override the emit method of the logging handler, sends the log
         to a Discord Webhook.
@@ -71,12 +71,10 @@ class DiscordSink(Handler):
         maxEmbedDesc: int = 4083
         maxEmbedFooter: int = 2040
 
-        try:
+        if record.exc_info:
             # Get Exception type from exc_info tuple
             if record.exc_info[0] in self.suppress:
                 return
-        except Exception:
-            pass
 
         message: str = record.getMessage()
 
@@ -108,7 +106,7 @@ class DiscordSink(Handler):
                     pass
 
             embed.set_title(record.levelname[:maxEmbedTitle])
-            embed.set_footer(
+            embed.set_footer(  # type: ignore
                 text=f"{record.filename[:maxEmbedFooter]}:{record.lineno:,}",
                 icon_url="https://i.imgur.com/7xeGMSf.png",
             )
