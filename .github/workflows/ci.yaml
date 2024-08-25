@@ -1,0 +1,28 @@
+name: ci
+
+on:
+    push:
+        branches:
+            - "main"
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v3
+            - name: Setup uv
+              run: curl -LsSf https://astral.sh/uv/install.sh | sh
+            - name: Setup Python
+              run: uv python install
+            - name: Install the project
+              run: uv sync --all-extras --dev
+            - name: Run tests
+              run: uv run pytest
+            - name: Publish to PyPI
+              env:
+                  TWINE_USERNAME: __token__
+                  TWINE_PASSWORD: ${{ secrets.TWINE_TOKEN }}
+              run: |
+                  uvx --from build pyproject-build --installer uv
+                  uvx twine upload dist/*
