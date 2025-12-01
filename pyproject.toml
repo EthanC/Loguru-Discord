@@ -1,21 +1,28 @@
 [project]
 name = "loguru-discord"
-version = "1.4.0"
-description = "Lightweight sink for Loguru that sends logs to Discord via webhook."
+version = "2.0.0"
+description = "A lightweight sink for Loguru that forward logs to Discord via the Webhook API."
 readme = "README.md"
-requires-python = ">=3.12"
-dependencies = [
-    "discord-webhook>=1.3.1",
+authors = [
+    { name = "Ethan C", email = "16727756+EthanC@users.noreply.github.com" },
 ]
-license = "MIT"
+requires-python = ">=3.11"
+dependencies = [
+    "discord-clyde>=0.5.0",
+    "loguru>=0.7.3",
+]
+license = "AGPL-3.0"
 keywords = ["loguru", "discord", "logging", "webhook", "sink"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.11",
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
     "Natural Language :: English",
     "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3.12",
     "Topic :: Internet",
     "Topic :: Software Development :: Libraries",
     "Topic :: Software Development :: Libraries :: Python Modules",
@@ -25,18 +32,62 @@ classifiers = [
 [project.urls]
 Repository = "https://github.com/EthanC/Loguru-Discord"
 Issues = "https://github.com/EthanC/Loguru-Discord/issues"
-Changelog = "https://github.com/EthanC/Loguru-Discord/commits/main/"
-Twitter = "https://twitter.com/Mxtive"
+Changelog = "https://github.com/EthanC/Loguru-Discord/releases"
+Twitter = "https://x.com/Mxtive"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-[tool.uv]
-dev-dependencies = [
-    "ruff>=0.6.2",
-    "pytest>=8.3.2",
+[dependency-groups]
+dev = [
+    "ruff>=0.14.7",
+    "pytest>=9.0.1",
+    "pytest-cov>=7.0.0",
+    "environs>=14.5.0",
+    "ty>=0.0.1a29",
 ]
 
+[tool.ruff]
+fix = true
+show-fixes = true
+
+[tool.ruff.format]
+docstring-code-format = true
+line-ending = "lf"
+skip-magic-trailing-comma = true
+
 [tool.ruff.lint]
-select = ["I"]
+select = ["I", "D"]
+
+[tool.ruff.lint.extend-per-file-ignores]
+"tests/*.py" = ["D"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
+
+[tool.ruff.lint.isort]
+split-on-trailing-comma = false
+
+[tool.pytest.ini_options]
+xfail_strict = true
+log_cli = true
+log_cli_level = "DEBUG"
+
+[tool.hatch.build.targets.wheel]
+packages = ["loguru-discord"]
+
+[tool.tox]
+requires = ["tox>=4.32.0", "tox-uv>=1.29.0"]
+env_list = [
+    "3.14",
+    "3.13",
+    "3.12",
+    "3.11",
+]
+
+[tool.tox.env_run_base]
+description = "Run test under {base_python}"
+commands = [["pytest"]]
+allowlist_externals = ["pytest"]
+set_env = { TESTS_WEBHOOK_URL = "{env:TESTS_WEBHOOK_URL}" }

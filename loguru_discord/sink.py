@@ -1,125 +1,115 @@
-import logging
-from logging import Handler, LogRecord
-from typing import Any
+"""Define the DiscordSink class and its associates."""
 
-from discord_webhook import DiscordEmbed, DiscordWebhook
+import logging
+from datetime import datetime
+from logging import Handler, LogRecord
+from typing import Self
+
+from clyde import Markdown, Timestamp, Webhook
+from clyde.components import Container, Seperator, SeperatorSpacing, TextDisplay
+
+from loguru_discord.intercept import Intercept
 
 
 class DiscordSink(Handler):
-    """Logging handler that enables sending logs to a Discord Webhook."""
+    """Represent a DiscordSink object."""
 
     def __init__(
-        self,
-        webhookUrl: str,
+        self: Self,
+        webhook_url: str,
         *,
         username: str | None = None,
-        avatarUrl: str | None = None,
-        embed: bool = False,
-        truncate: bool = False,
-        suppress: list[Any] = [],
+        avatar_url: str | None = None,
+        rich: bool = False,
+        intercept: bool = False,
+        suppress: list[type[BaseException]] | None = None,
     ) -> None:
         """
-        Initialize a DiscordSink instance.
+        Initialize a DiscordSink object.
 
-        Args:
-            webhookUrl (str): Discord Webhook URL to write log messages to.
+        Arguments:
+            webhook_url (str): Discord Webhook to forward log events to.
 
-            `username` (`str`, optional): Username to use for the Webhook message.
-                Default is `None` (determined by Discord.)
-            `avatarUrl` (`str`, optional): Image URL to use for the Webhook avatar.
-                Default is `None` (determined by Discord.)
-            `embed` (`bool`, optional): A toggle to use the Discord Embed format.
-                Default is `False`.
-            `truncate` (`bool`, optional): A toggle to trim lengthy logs instead of uploading as a file.
-                Default is `False`.
-            `suppress` (`list`, optional): An array of Exception types to ignore.
-                Default is empty.
+            username (str | None): String to use for the Webhook username.
+                Default is determined by Discord.
+
+            avatar_url (str | None): Image URL to use for the Webhook avatar.
+                Default is determined by Discord.
+
+            rich (bool): Toggle whether to use Discord Components.
+                Default is False.
+
+            suppress (list[type[BaseException]] | None): List of Exception]
+                types to not forward to Discord. Default is None.
         """
-
         super().__init__()
 
-        self.webhookUrl: str = webhookUrl
+        self.webhook_url: str = webhook_url
+
         self.username: str | None = username
-        self.avatarUrl: str | None = avatarUrl
-        self.embed: bool = embed
-        self.truncate: bool = truncate
-        self.suppress: list[Any] = suppress
+        self.avatar_url: str | None = avatar_url
+        self.rich: bool = rich
+        self.intercept: bool = intercept
+        self.suppress: list[type[BaseException]] | None = suppress
+        self.webhook: Webhook = Webhook(url=self.webhook_url)
 
-        self.webhook: DiscordWebhook = DiscordWebhook(
-            self.webhookUrl,
-            username=self.username,
-            avatar_url=self.avatarUrl,
-            rate_limit_retry=True,
-        )
+        if self.username:
+            self.webhook.set_username(self.username)
 
-    def emit(self, record: LogRecord) -> None:
+        if self.avatar_url:
+            self.webhook.set_avatar_url(self.avatar_url)
+
+        if self.intercept:
+            Intercept.setup()
+
+    def emit(self: Self, record: LogRecord) -> None:
         """
-        Override the emit method of the logging handler, sends the log
-        to a Discord Webhook.
+        Emit the log record to the Discord Webhook instance.
 
-        Log message length will be trimmed according to limitations
-        imposed by Discord. See documentation for more information.
-        - Messages: https://discord.com/developers/docs/resources/webhook#execute-webhook-jsonform-params
-        - Embeds: https://discord.com/developers/docs/resources/channel#embed-object-embed-limits
-
-        Args:
-            `record` (`logging.LogRecord`): Log record to send.
+        Arguments:
+            record (LogRecord): Log record to forward to the Webhook.
         """
-
-        maxMessage: int = 1987
-        maxEmbedTitle: int = 256
-        maxEmbedDesc: int = 4083
-        maxEmbedFooter: int = 2040
-
-        if record.exc_info:
-            # Get Exception type from exc_info tuple
-            if record.exc_info[0] in self.suppress:
+        if self.suppress and record.exc_info:
+            if isinstance(record.exc_info[1], tuple(self.suppress)):
                 return
 
-        message: str = record.getMessage()
+        body: str = Markdown.code_block(record.getMessage())
 
-        if not self.embed:
-            if len(message) > maxMessage:
-                if self.truncate:
-                    self.webhook.set_content(f"```py\n{message[:maxMessage]}...\n```")
-                else:
-                    self.webhook.add_file(message.encode(), "log.txt")
-            else:
-                self.webhook.set_content(f"```py\n{message}\n```")
-        else:
-            embed: DiscordEmbed = DiscordEmbed()
+        if self.rich:
+            timestamp: datetime = datetime.now()
+            container: Container = Container(
+                components=[
+                    TextDisplay(content=Markdown.header_3(record.levelname)),
+                    TextDisplay(content=body),
+                    Seperator(divider=True, spacing=SeperatorSpacing.SMALL),
+                    TextDisplay(
+                        content=Markdown.subtext(
+                            f"{Timestamp.long_date_time(timestamp)} ({Timestamp.relative_time(timestamp)})"
+                        )
+                    ),
+                ]
+            )
 
             match record.levelno:
                 case logging.CRITICAL:
-                    embed.set_color("000000")
+                    container.set_accent_color("000000")
                 case logging.ERROR:
-                    embed.set_color("F23F42")
+                    container.set_accent_color("D22D39")
                 case logging.WARNING:
-                    embed.set_color("BF861C")
+                    container.set_accent_color("CE9C5C")
                 case 25:  # Loguru SUCCESS
-                    embed.set_color("23A559")
+                    container.set_accent_color("43A25A")
                 case logging.INFO:
-                    embed.set_color("FFFFFF")
+                    container.set_accent_color("FFFFFF")
                 case logging.DEBUG:
-                    embed.set_color("5865F2")
+                    container.set_accent_color("5865F2")
                 case _:
                     pass
 
-            embed.set_title(record.levelname[:maxEmbedTitle])
-            embed.set_footer(  # type: ignore
-                text=f"{record.filename[:maxEmbedFooter]}:{record.lineno:,}",
-                icon_url="https://i.imgur.com/7xeGMSf.png",
+            self.webhook.add_component(container)
+        else:
+            self.webhook.set_content(
+                Markdown.code_block(record.getMessage()), fallback=True
             )
-            embed.set_timestamp(record.created)
-
-            if len(message) > maxMessage:
-                if self.truncate:
-                    embed.set_description(f"```py\n{message[:maxEmbedDesc]}...\n```")
-                else:
-                    self.webhook.add_file(message.encode(), "log.txt")
-            else:
-                embed.set_description(f"```py\n{message}\n```")
-
-            self.webhook.add_embed(embed)
 
         self.webhook.execute()

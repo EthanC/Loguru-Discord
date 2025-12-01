@@ -1,61 +1,92 @@
 # Loguru-Discord
 
-![PyPI - Python Version](https://img.shields.io/pypi/pyversions/loguru-discord?label=Python) ![PyPI - Status](https://img.shields.io/pypi/status/loguru-discord?label=PyPI%20Status) ![PyPI - Downloads](https://img.shields.io/pypi/dm/loguru-discord?label=PyPI%20Downloads)
+![Python](https://img.shields.io/badge/Python-3-blue?logo=python&logoColor=white)
+![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/ethanc/loguru-discord/workflow.yaml)
+![PyPI Downloads](https://img.shields.io/pypi/dm/loguru-discord)
+[![Coverage Report](https://codecov.io/gh/ethanc/loguru-discord/branch/main/graph/badge.svg)](https://codecov.io/gh/ethanc/loguru-discord)
 
-Lightweight sink for [Loguru](https://github.com/Delgan/loguru) that sends logs to [Discord](https://discord.com/) via webhook.
+Loguru-Discord is a lightweight sink for [Loguru](https://github.com/Delgan/loguru) that forwards logs to [Discord](https://discord.com/) via the Webhook API.
 
-<p align="center">
-    <img src="https://i.imgur.com/aS7wt4c.png" draggable="false">
-</p>
+## Features
 
-## Usage
+-   Plug-and-play adoption with your existing logging structure
+-   Highly configurable presentation, from usernames and avatars to rich formatting and truncation
+-   Fully type-hinted for an excellent developer experience
+-   Native and performant Webhook API interaction powered by [Clyde](https://github.com/EthanC/Clyde)
 
-Construct a handler with your preferred options, then add a new sink to Loguru.
+![Preview](/assets/readme_example.png)
+
+## Getting Started
 
 ### Installation
 
-Support is guaranteed only for Python 3.12 or greater.
+> [!IMPORTANT]
+> Loguru-Discord requires Python 3.11 or later.
 
-Once this requirement is met, simply install via your package manager of choice.
+Install with [uv](https://github.com/astral-sh/uv) (recommended):
+
+```
+uv add loguru-discord
+```
+
+Alternatively, install with pip:
 
 ```
 pip install loguru-discord
 ```
 
+### Handler
+
+You can integrate Loguru-Discord in just two lines:
+
+```py
+from loguru_discord import DiscordSink
+
+logger.add(DiscordSink("https://discord.com/api/webhooks/00000000/XXXXXXXX"))
+```
+
+All configuration is handled on `DiscordSink` via optional keyword arguments.
+
+| **Argument**  | **Description**                                                      | **Default**                    |
+|---------------|----------------------------------------------------------------------|--------------------------------|
+| `webhook_url` | Discord Webhook URL to forward log events to.                        | N/A (Required)                 |
+| `username`    | String to use for the Webhook username.                              | `None` (Determined by Discord) |
+| `avatar_url`  | Image URL to use for the Webhook avatar.                             | `None` (Determined by Discord) |
+| `rich`        | Toggle whether to use Discord Components.                            | `False`                        |
+| `suppress`    | List of Exception types to not forward to Discord.                   | `None`                         |
+
 ### Example
 
-The following code is a complete example which demonstrates:
-
--   Constructing a handler
--   Adding the handler as a Loguru sink
--   Catching an exception and firing a log
+Here’s a complete, end-to-end example using Loguru-Discord:
 
 ```py
 from loguru import logger
 from loguru_discord import DiscordSink
 
-logger.add(DiscordSink("https://discord.com/api/webhooks/00000000/XXXXXXXX"))
+# Construct the Discord handler
+sink: DiscordSink = DiscordSink("https://discord.com/api/webhooks/00000000/XXXXXXXX")
 
+# Add the sink to Loguru
+logger.add(sink)
+
+# Log an exception
 try:
     value: float = 1 / 0
 except Exception as e:
     logger.opt(exception=e).error("Lorem ipsum dolor sit amet")
 ```
 
-## Customization
-
-Upon constructing your handler, the following optional customizations are available via keyword arguments.
-
--   **Username**: Username to use for the Discord Webhook message.
--   **Avatar**: Image URL to use for the Discord Webhook message.
--   **Embed**: Toggle whether to use plain codeblock formatting or rich embeds.
--   **Truncate**: Toggle whether to trim lengthy logs instead of uploading as a file.
--   **Suppress**: Prevent specific Exception types from being sent to Discord.
-
 ## Releases
 
-Loguru-Discord follows [Semantic Versioning](https://semver.org/) for tagging releases of the project.
+Loguru-Discord loosely follows [Semantic Versioning](https://semver.org/) for consistent, predictable releases.
 
 ## Contributing
 
-Bug fixes and optimizations are always welcome. See [`CONTRIBUTING.md`](https://github.com/EthanC/Loguru-Discord/blob/master/.github/CONTRIBUTING.md) for details.
+Contributions are welcome—whether it’s fixing bugs or adding new features.
+
+-   See [`CONTRIBUTING.md`](/.github/CONTRIBUTING.md) for guidelines.
+-   See [Issues](https://github.com/EthanC/Loguru-Discord/issues) for known bugs and feature requests.
+
+## Acknowledgments
+
+This project is not affiliated with or endorsed by Loguru or Discord in any way.

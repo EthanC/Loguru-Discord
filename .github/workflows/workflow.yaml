@@ -1,0 +1,43 @@
+name: Primary
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  library:
+    name: Library
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+      - name: Install Python
+        run: uv python install
+      - name: Install Dependencies
+        run: uv sync --dev
+      - name: Run ruff
+        run: uv run ruff check .
+      - name: Run pytest
+        run: uv run pytest --cov --cov-branch --cov-report=xml
+        env:
+          TESTS_WEBHOOK_URL: ${{ secrets.TESTS_WEBHOOK_URL }}
+      - name: Upload Coverage Report
+        uses: codecov/codecov-action@v5
+        with:
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+      - name: Install tox
+        run: uv tool install tox --with tox-uv
+      - name: Run tox
+        run: uv run tox
+        env:
+          TESTS_WEBHOOK_URL: ${{ secrets.TESTS_WEBHOOK_URL }}
+      - name: Build Package
+        run: uv build
