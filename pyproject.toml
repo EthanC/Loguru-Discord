@@ -1,6 +1,6 @@
 [project]
 name = "loguru-discord"
-version = "2.0.0"
+version = "2.0.1"
 description = "A lightweight sink for Loguru that forward logs to Discord via the Webhook API."
 readme = "README.md"
 authors = [
@@ -41,11 +41,11 @@ build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
-    "ruff>=0.14.7",
-    "pytest>=9.0.1",
+    "ruff>=0.14.10",
+    "pytest>=9.0.2",
     "pytest-cov>=7.0.0",
     "environs>=14.5.0",
-    "ty>=0.0.1a29",
+    "ty>=0.0.6",
 ]
 
 [tool.ruff]
@@ -75,7 +75,7 @@ log_cli = true
 log_cli_level = "DEBUG"
 
 [tool.hatch.build.targets.wheel]
-packages = ["loguru-discord"]
+packages = ["loguru_discord"]
 
 [tool.tox]
 requires = ["tox>=4.32.0", "tox-uv>=1.29.0"]
