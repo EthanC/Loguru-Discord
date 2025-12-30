@@ -13,6 +13,7 @@ Loguru-Discord is a lightweight sink for [Loguru](https://github.com/Delgan/logu
 -   Highly configurable presentation, from usernames and avatars to rich formatting and truncation
 -   Fully type-hinted for an excellent developer experience
 -   Native and performant Webhook API interaction powered by [Clyde](https://github.com/EthanC/Clyde)
+-   Opt-in interception of standard library logging events, unified under Loguru
 
 ![Preview](/assets/readme_example.png)
 
