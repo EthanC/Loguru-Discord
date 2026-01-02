@@ -22,6 +22,7 @@ class DiscordSink(Handler):
         avatar_url: str | None = None,
         rich: bool = False,
         intercept: bool = False,
+        intercept_level_map: dict[str, str] | None = None,
         suppress: list[type[BaseException]] | None = None,
     ) -> None:
         """
@@ -39,6 +40,12 @@ class DiscordSink(Handler):
             rich (bool): Toggle whether to use Discord Components.
                 Default is False.
 
+            intercept (bool): Toggle whether to intercept the standard logging library.
+                Default is False.
+
+            intercept_level_map (dict[str, str] | None): Mapping of custom levels to Loguru levels.
+                Default is None.
+
             suppress (list[type[BaseException]] | None): List of Exception]
                 types to not forward to Discord. Default is None.
         """
@@ -50,6 +57,7 @@ class DiscordSink(Handler):
         self.avatar_url: str | None = avatar_url
         self.rich: bool = rich
         self.intercept: bool = intercept
+        self.intercept_level_map: dict[str, str] | None = intercept_level_map
         self.suppress: list[type[BaseException]] | None = suppress
         self.webhook: Webhook = Webhook(url=self.webhook_url)
 
@@ -60,7 +68,7 @@ class DiscordSink(Handler):
             self.webhook.set_avatar_url(self.avatar_url)
 
         if self.intercept:
-            Intercept.setup()
+            Intercept.setup(self.intercept_level_map)
 
     def emit(self: Self, record: LogRecord) -> None:
         """

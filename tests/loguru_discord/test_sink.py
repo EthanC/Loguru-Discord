@@ -13,7 +13,7 @@ from loguru_discord import DiscordSink
 TEST_MESSAGE: Final[str] = (
     "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
 )
-TESTS_WEBHOOK_URL: Final[str] = env.str("TESTS_WEBHOOK_URL")
+TESTS_WEBHOOK_URL: Final[str] = env.url("TESTS_WEBHOOK_URL").geturl()
 
 
 def test_emit() -> None:
@@ -167,5 +167,22 @@ def test_emit_suppressed() -> None:
         _: float = 1 / 0
     except ZeroDivisionError as e:
         logger.opt(exception=e).critical("Exception should not be forwarded to Discord")
+
+    logger.remove(handler_id)
+
+
+def test_emit_intercept() -> None:
+    """
+    A test-case to validate the use of standard logging library interception
+    catches and forwards an event to Discord.
+    """
+    handler_id: int = logger.add(
+        DiscordSink(TESTS_WEBHOOK_URL, intercept=True), backtrace=False
+    )
+
+    try:
+        _: float = 1 / 0
+    except ZeroDivisionError as e:
+        logging.error(TEST_MESSAGE)
 
     logger.remove(handler_id)

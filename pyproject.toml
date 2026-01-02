@@ -1,6 +1,6 @@
 [project]
 name = "loguru-discord"
-version = "2.0.1"
+version = "2.1.0"
 description = "A lightweight sink for Loguru that forward logs to Discord via the Webhook API."
 readme = "README.md"
 authors = [
@@ -45,7 +45,7 @@ dev = [
     "pytest>=9.0.2",
     "pytest-cov>=7.0.0",
     "environs>=14.5.0",
-    "ty>=0.0.6",
+    "ty>=0.0.8",
 ]
 
 [tool.ruff]

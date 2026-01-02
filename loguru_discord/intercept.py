@@ -11,6 +11,14 @@ from loguru import logger
 class Intercept(Handler):
     """Handler to intercept logging messages and redirect to Loguru."""
 
+    level_map: dict[str, str] | None
+
+    def __init__(self: Self, level_map: dict[str, str] | None) -> None:
+        """Initialize an Intercept handler."""
+        super().__init__()
+
+        self.level_map: dict[str, str] = level_map
+
     def emit(self: Self, record: LogRecord):
         """Log emitter."""
         level: int | str = record.levelno
@@ -18,6 +26,11 @@ class Intercept(Handler):
         depth: int = 2
 
         try:
+            if self.level_map:
+                for key, value in self.level_map.items():
+                    if record.levelname == key:
+                        record.levelname = value
+
             level = logger.level(record.levelname).name
         except Exception as e:
             logger.opt(exception=e).trace("Failed to determine logger intercept level")
@@ -32,6 +45,6 @@ class Intercept(Handler):
         )
 
     @staticmethod
-    def setup() -> None:
+    def setup(level_map: dict[str, str] | None = None) -> None:
         """Reroute standard library logging to Loguru."""
-        logging.basicConfig(handlers=[Intercept()], level=0, force=True)
+        logging.basicConfig(handlers=[Intercept(level_map)], level=0, force=True)

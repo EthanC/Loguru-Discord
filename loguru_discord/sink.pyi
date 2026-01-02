@@ -8,6 +8,7 @@ class DiscordSink(Handler):
     avatar_url: str | None
     rich: bool
     intercept: bool
+    intercept_level_map: dict[str, str] | None
     suppress: list[type[BaseException]] | None
     webhook: Webhook
 
@@ -19,6 +20,7 @@ class DiscordSink(Handler):
         avatar_url: str | None = None,
         rich: bool = False,
         intercept: bool = False,
+        intercept_level_map: dict[str, str] | None = None,
         suppress: list[type[BaseException]] | None = None,
     ) -> None: ...
     def emit(self, record: LogRecord) -> None: ...

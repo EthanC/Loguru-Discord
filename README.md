@@ -48,13 +48,15 @@ logger.add(DiscordSink("https://discord.com/api/webhooks/00000000/XXXXXXXX"))
 
 All configuration is handled on `DiscordSink` via optional keyword arguments.
 
-| **Argument**  | **Description**                                                      | **Default**                    |
-|---------------|----------------------------------------------------------------------|--------------------------------|
-| `webhook_url` | Discord Webhook URL to forward log events to.                        | N/A (Required)                 |
-| `username`    | String to use for the Webhook username.                              | `None` (Determined by Discord) |
-| `avatar_url`  | Image URL to use for the Webhook avatar.                             | `None` (Determined by Discord) |
-| `rich`        | Toggle whether to use Discord Components.                            | `False`                        |
-| `suppress`    | List of Exception types to not forward to Discord.                   | `None`                         |
+| **Argument**          | **Description**                                                      | **Default**                    |
+|-----------------------|----------------------------------------------------------------------|--------------------------------|
+| `webhook_url`         | Discord Webhook URL to forward log events to.                        | N/A (Required)                 |
+| `username`            | String to use for the Webhook username.                              | `None` (Determined by Discord) |
+| `avatar_url`          | Image URL to use for the Webhook avatar.                             | `None` (Determined by Discord) |
+| `rich`                | Toggle whether to use Discord Components.                            | `False`                        |
+| `intercept`           | Toggle whether to intercept standard library logging.                | `False`                        |
+| `intercept_level_map` | Map custom log levels to Loguru log levels.                          | `None`                         |
+| `suppress`            | List of Exception types to not forward to Discord.                   | `None`                         |
 
 ### Example
 
