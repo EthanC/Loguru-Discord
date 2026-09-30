@@ -28,7 +28,7 @@ class Intercept(Handler):
 
         level: int | str = record.levelno
         frame: FrameType | None = logging.currentframe()
-        depth: int = 2
+        depth: int = 0
 
         try:
             if self.level_map:
@@ -40,7 +40,7 @@ class Intercept(Handler):
         except Exception as e:
             logger.opt(exception=e).trace("Failed to determine logger intercept level")
 
-        while (frame) and (frame.f_code.co_filename == logging.__file__):
+        while frame and (depth == 0 or frame.f_code.co_filename == logging.__file__):
             frame = frame.f_back
 
             depth += 1
