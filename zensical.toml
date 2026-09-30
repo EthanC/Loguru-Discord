@@ -1,0 +1,29 @@
+[project]
+site_name = "Loguru-Discord"
+site_description = "Forward Loguru and standard-library logs to Discord webhooks with plain messages, rich components, and attachments."
+site_url = "https://loguru-discord.e3n.im/"
+site_author = "Ethan C"
+repo_url = "https://github.com/EthanC/Loguru-Discord"
+repo_name = "EthanC/Loguru-Discord"
+extra_css = ["stylesheets/extra.css"]
+nav = [
+    { "Home" = "index.md" },
+    { "DiscordSink" = "sink.md" },
+    { "Intercept" = "intercept.md" },
+]
+
+[project.theme]
+palette.scheme = "slate"
+palette.primary = "custom"
+palette.accent = "custom"
+logo = "images/icon.svg"
+favicon = "images/icon.svg"
+
+[project.plugins.mkdocstrings.handlers.python]
+inventories = ["https://docs.python.org/3/objects.inv"]
+paths = ["."]
+
+[project.plugins.mkdocstrings.handlers.python.options]
+docstring_style = "google"
+inherited_members = true
+show_source = false

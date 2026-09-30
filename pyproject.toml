@@ -30,6 +30,7 @@ classifiers = [
 ]
 
 [project.urls]
+Documentation = "https://loguru-discord.e3n.im/"
 Repository = "https://github.com/EthanC/Loguru-Discord"
 Issues = "https://github.com/EthanC/Loguru-Discord/issues"
 Changelog = "https://github.com/EthanC/Loguru-Discord/releases"
@@ -46,6 +47,8 @@ dev = [
     "pytest-cov>=7.1.0",
     "environs>=15.2.0",
     "ty>=0.0.84",
+    "zensical>=0.0.59",
+    "mkdocstrings-python>=2.0.8",
 ]
 
 [tool.ruff]

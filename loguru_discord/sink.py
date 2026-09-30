@@ -1,4 +1,4 @@
-"""Define the DiscordSink class and its associates."""
+"""Send Loguru records to Discord webhooks."""
 
 import logging
 from copy import deepcopy
@@ -19,7 +19,18 @@ _RICH_TEXT_LIMIT: Final[int] = 4000
 
 
 class DiscordSink(Handler):
-    """Represent a DiscordSink object."""
+    """Forward Loguru records to a Discord webhook.
+
+    Add an instance to Loguru with ``logger.add(sink)``. Records are sent
+    synchronously as Markdown code blocks, or as Components V2 containers
+    when ``rich=True``. Use ``enqueue=True`` on ``logger.add()`` to queue
+    delivery in a background thread.
+
+    Records exceeding Discord's text limits are sent as UTF-8 ``message.txt``
+    attachments containing the complete formatted record, including any
+    traceback, without Markdown fences. Oversized rich records use a plain
+    payload; subsequent records retain rich formatting.
+    """
 
     def __init__(
         self: Self,
@@ -41,14 +52,14 @@ class DiscordSink(Handler):
         suppress: list[type[BaseException]] | None = None,
     ) -> None:
         """
-        Initialize a DiscordSink object.
+        Initialize a Discord webhook sink.
 
-        Arguments:
-            webhook_url (str): Discord Webhook to forward log events to.
+        Args:
+            webhook_url (str): Discord webhook URL to forward log records to.
 
             thread_id (str | None): Thread within the Webhook's channel to forward log events to.
                 Overrides the thread_id query parameter in the Webhook URL.
-                Default is None.
+                When None, any thread_id in the URL is used. Default is None.
 
             username (str | None): String to use for the Webhook username.
                 Default is determined by Discord.
@@ -56,7 +67,8 @@ class DiscordSink(Handler):
             avatar_url (str | None): Image URL to use for the Webhook avatar.
                 Default is determined by Discord.
 
-            rich (bool): Toggle whether to use Discord Components.
+            rich (bool): Use Discord Components V2 with a level heading,
+                accent color, and timestamps instead of a plain message.
                 Default is False.
 
             critical_color (str | int | None): CRITICAL accent color when rich is True.
@@ -80,14 +92,20 @@ class DiscordSink(Handler):
             trace_color (str | int | None): TRACE accent color when rich is True.
                 Hexadecimal string or integer; None disables the accent. Default is None.
 
-            intercept (bool): Toggle whether to intercept the standard logging library.
+            intercept (bool): Route standard-library logging through Loguru by
+                calling Intercept.setup(). Replaces and closes existing root
+                logging handlers and sets the root logging level to 0.
                 Default is False.
 
-            intercept_level_map (dict[str, str] | None): Mapping of custom levels to Loguru levels.
+            intercept_level_map (dict[str, str] | None): Mapping of standard-library
+                level names to Loguru level names. Used only when intercept is True.
+                Unrecognized names fall back to the record's numeric level.
                 Default is None.
 
-            suppress (list[type[BaseException]] | None): List of Exception]
-                types to not forward to Discord. Default is None.
+            suppress (list[type[BaseException]] | None): Exception types whose
+                records are skipped by this sink, including subclasses. Only
+                records with exception information are checked; other Loguru
+                sinks are unaffected. Default is None.
         """
         super().__init__()
 
@@ -123,10 +141,15 @@ class DiscordSink(Handler):
 
     def emit(self: Self, record: LogRecord) -> None:
         """
-        Emit the log record to the Discord Webhook instance.
+        Deliver a formatted record to the Discord webhook.
 
-        Arguments:
-            record (LogRecord): Log record to forward to the Webhook.
+        Plain output allows 2,000 characters including code-block fences.
+        Rich output allows 4,000 characters across the body, level heading,
+        and timestamps, including Markdown formatting. Longer records become
+        attachments. Matching exception types are skipped before delivery.
+
+        Args:
+            record (LogRecord): Record formatted by Loguru for webhook delivery.
         """
         if self.suppress and record.exc_info:
             if isinstance(record.exc_info[1], tuple(self.suppress)):

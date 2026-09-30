@@ -7,7 +7,7 @@ on:
   pull_request:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   library:
@@ -21,7 +21,7 @@ jobs:
       - name: Install Python
         run: uv python install 3.11 3.12 3.13 3.14
       - name: Install Dependencies
-        run: uv sync --dev
+        run: uv sync --locked --dev
       - name: Run ruff
         run: uv run ruff check .
       - name: Run pytest
@@ -37,3 +37,42 @@ jobs:
         run: uv run tox
       - name: Build Package
         run: uv build
+  documentation-build:
+    name: Documentation Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7.0.1
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.2.0
+      - name: Install Python
+        run: uv python install
+      - name: Install Dependencies
+        run: uv sync --locked --dev
+      - name: Build Documentation
+        run: uv run zensical build --clean
+      - name: Upload Documentation
+        uses: actions/upload-pages-artifact@v5.0.0
+        with:
+          path: site/
+  documentation-deploy:
+    name: Documentation Deployment
+    needs: documentation-build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Configure Pages
+        uses: actions/configure-pages@v6.0.0
+      - name: Deploy Documentation
+        uses: actions/deploy-pages@v5.0.1
+        id: deployment

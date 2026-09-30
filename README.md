@@ -10,15 +10,17 @@
 
 Loguru-Discord is a lightweight sink for [Loguru](https://github.com/Delgan/loguru) that forwards logs to [Discord](https://discord.com/) via the Webhook API.
 
+[Documentation](https://loguru-discord.e3n.im/) includes examples and the [DiscordSink](https://loguru-discord.e3n.im/sink/) and [Intercept](https://loguru-discord.e3n.im/intercept/) API references.
+
 ## Features
 
 -   Plug-and-play adoption with your existing logging structure
--   Highly configurable presentation, from usernames and avatars to rich formatting and truncation
+-   Configurable usernames, avatars, rich formatting, and attachments for oversized messages
 -   Fully type-hinted for an excellent developer experience
 -   Native and performant Webhook API interaction powered by [Clyde](https://github.com/EthanC/Clyde)
 -   Opt-in interception of standard library logging events, unified under Loguru
 
-![Preview](/assets/readme_example.png)
+![Preview](https://raw.githubusercontent.com/EthanC/Loguru-Discord/main/assets/readme_example.png)
 
 ## Getting Started
 
@@ -29,24 +31,26 @@ Loguru-Discord is a lightweight sink for [Loguru](https://github.com/Delgan/logu
 
 Install with [uv](https://github.com/astral-sh/uv) (recommended):
 
-```
+```console
 uv add loguru-discord
 ```
 
 Alternatively, install with pip:
 
-```
+```console
 pip install loguru-discord
 ```
 
 ### Handler
 
-You can integrate Loguru-Discord in just two lines:
+Replace the placeholder with your Discord webhook URL:
 
 ```py
+from loguru import logger
 from loguru_discord import DiscordSink
 
 logger.add(DiscordSink("https://discord.com/api/webhooks/00000000/XXXXXXXX"))
+logger.info("Application started")
 ```
 
 All configuration is handled on `DiscordSink` via optional keyword arguments.
@@ -57,7 +61,7 @@ All configuration is handled on `DiscordSink` via optional keyword arguments.
 | `thread_id`           | Thread within the Webhook's channel to forward log events to.        | `None`                         |
 | `username`            | String to use for the Webhook username.                              | `None` (Determined by Discord) |
 | `avatar_url`          | Image URL to use for the Webhook avatar.                             | `None` (Determined by Discord) |
-| `rich`                | Toggle whether to use Discord Components.                            | `False`                        |
+| `rich`                | Use Discord Components V2 with a heading, colors, and timestamps.    | `False`                        |
 | `critical_color`      | CRITICAL accent color when `rich=True`.                              | `"000000"`                     |
 | `error_color`         | ERROR accent color when `rich=True`.                                 | `"D22D39"`                     |
 | `warning_color`       | WARNING accent color when `rich=True`.                               | `"CE9C5C"`                     |
@@ -65,9 +69,9 @@ All configuration is handled on `DiscordSink` via optional keyword arguments.
 | `info_color`          | INFO accent color when `rich=True`.                                  | `"FFFFFF"`                     |
 | `debug_color`         | DEBUG accent color when `rich=True`.                                 | `"5865F2"`                     |
 | `trace_color`         | TRACE accent color when `rich=True`.                                 | `None` (No accent color)        |
-| `intercept`           | Toggle whether to intercept standard library logging.                | `False`                        |
+| `intercept`           | Route standard-library logging through Loguru.                       | `False`                        |
 | `intercept_level_map` | Map custom log levels to Loguru log levels.                          | `None`                         |
-| `suppress`            | List of Exception types to not forward to Discord.                   | `None`                         |
+| `suppress`            | Exception types (including subclasses) whose records are skipped.   | `None`                         |
 
 ### Accent colors
 
@@ -104,20 +108,28 @@ A supplied `thread_id` takes precedence over a `thread_id` query parameter in th
 
 ### Long messages
 
-Plain messages that exceed Discord's 2,000-character content limit are sent as a `message.txt` attachment. With `rich=True`, the sink uses the same attachment fallback when the body, level heading, and timestamp exceed the 4,000-character Components V2 text limit, including Markdown formatting.
+Plain output that exceeds Discord's 2,000-character content limit, including Markdown code-block fences, is sent as a `message.txt` attachment. With `rich=True`, the sink uses the same attachment fallback when the body, level heading, and timestamps exceed the 4,000-character Components V2 text limit, including Markdown formatting.
 
 The attachment contains the complete formatted log record, including any traceback, encoded as UTF-8 without Markdown code-block fences. Oversized rich records use a plain webhook payload without Components V2 flags. Subsequent records that fit the limit retain rich formatting.
 
+### Standard-library logging
+
+Set `intercept=True` on `DiscordSink`, or call `Intercept.setup()` separately, to send standard-library logging records through Loguru. Setup replaces and closes existing root logging handlers and sets the root logging level to `0`. Named loggers retain their own levels and handlers and must propagate to the root logger to reach the interceptor.
+
+See the [logging interception example](https://loguru-discord.e3n.im/#standard-library-logging) for custom level mapping and setup details.
+
 ### Example
 
-Here’s a complete, end-to-end example using Loguru-Discord:
+This example uses rich output, as shown in the preview:
 
 ```py
 from loguru import logger
 from loguru_discord import DiscordSink
 
 # Construct the Discord handler
-sink: DiscordSink = DiscordSink("https://discord.com/api/webhooks/00000000/XXXXXXXX")
+sink: DiscordSink = DiscordSink(
+    "https://discord.com/api/webhooks/00000000/XXXXXXXX", rich=True
+)
 
 # Add the sink to Loguru
 logger.add(sink)
@@ -126,7 +138,7 @@ logger.add(sink)
 try:
     value: float = 1 / 0
 except Exception as e:
-    logger.opt(exception=e).error("Lorem ipsum dolor sit amet")
+    logger.opt(exception=e).error("Calculation failed")
 ```
 
 ## Releases
@@ -135,9 +147,9 @@ Loguru-Discord loosely follows [Semantic Versioning](https://semver.org/) for co
 
 ## Contributing
 
-Contributions are welcome—whether it’s fixing bugs or adding new features.
+See the contributor guide to report bugs, propose features, or work on documentation.
 
--   See [`CONTRIBUTING.md`](/.github/CONTRIBUTING.md) for guidelines.
+-   See [`CONTRIBUTING.md`](https://github.com/EthanC/Loguru-Discord/blob/main/.github/CONTRIBUTING.md) for guidelines.
 -   See [Issues](https://github.com/EthanC/Loguru-Discord/issues) for known bugs and feature requests.
 
 ## Acknowledgments

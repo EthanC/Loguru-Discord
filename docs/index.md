@@ -1,0 +1,183 @@
+# Loguru-Discord
+
+Loguru-Discord forwards [Loguru](https://github.com/Delgan/loguru) logs to [Discord](https://discord.com/) through the Webhook API. It supports plain messages, rich Components V2 output, custom usernames and avatars, thread targeting, and exception suppression. Webhook requests are handled by [Clyde](https://clyde.e3n.im/).
+
+## Installation
+
+Loguru-Discord requires **Python 3.11 or later**.
+
+Install with [uv](https://docs.astral.sh/uv/):
+
+```console
+uv add loguru-discord
+```
+
+Or install with pip:
+
+```console
+pip install loguru-discord
+```
+
+## Quickstart
+
+Replace the placeholder URL with your Discord webhook URL, then run:
+
+```python
+from loguru import logger
+from loguru_discord import DiscordSink
+
+logger.add(DiscordSink("https://discord.com/api/webhooks/00000000/XXXXXXXX"))
+logger.info("Application started")
+```
+
+The default output is a plain message containing the formatted log record in a Markdown code block. Loguru's existing console sink stays active. Each record is sent synchronously; pass `enqueue=True` to `logger.add()` if you want Loguru to queue delivery in a background thread.
+
+All webhook options are keyword arguments on [DiscordSink](sink.md).
+
+## Rich output
+
+Set `rich=True` to show the level heading, a colored container, and Discord timestamps alongside the log body:
+
+```python
+from loguru import logger
+from loguru_discord import DiscordSink
+
+sink = DiscordSink(
+    "https://discord.com/api/webhooks/00000000/XXXXXXXX",
+    username="Application logs",
+    rich=True,
+)
+logger.add(sink)
+
+try:
+    value = 1 / 0
+except ZeroDivisionError:
+    logger.exception("Calculation failed")
+```
+
+![Discord log output with a level heading, colored container, and exception traceback](images/readme_example.png)
+
+`username` and `avatar_url` override the webhook's display identity. When omitted, Discord uses the webhook's configured username and avatar.
+
+### Accent colors
+
+Each level has a separate color option. Use a hexadecimal string or integer to set a color, or `None` to remove that level's accent:
+
+```python
+from loguru import logger
+from loguru_discord import DiscordSink
+
+logger.add(
+    DiscordSink(
+        "https://discord.com/api/webhooks/00000000/XXXXXXXX",
+        rich=True,
+        error_color="FF0000",
+        warning_color=0xFFAA00,
+        info_color=None,
+        trace_color="808080",
+    )
+)
+logger.warning("Disk space is low")
+```
+
+| Level | Option | Default |
+| --- | --- | --- |
+| CRITICAL | `critical_color` | `"000000"` |
+| ERROR | `error_color` | `"D22D39"` |
+| WARNING | `warning_color` | `"CE9C5C"` |
+| SUCCESS | `success_color` | `"43A25A"` |
+| INFO | `info_color` | `"FFFFFF"` |
+| DEBUG | `debug_color` | `"5865F2"` |
+| TRACE | `trace_color` | `None` |
+
+Colors apply only when `rich=True`. Omitted options retain their defaults.
+
+## Threads
+
+Pass `thread_id` to send logs to an existing thread in the webhook's channel:
+
+```python
+from loguru import logger
+from loguru_discord import DiscordSink
+
+logger.add(
+    DiscordSink(
+        "https://discord.com/api/webhooks/00000000/XXXXXXXX",
+        thread_id="123456789012345678",
+    )
+)
+logger.info("Sent to the logging thread")
+```
+
+A supplied `thread_id` overrides a `thread_id` query parameter in the webhook URL. If the argument is `None`, Clyde uses any thread ID in the URL. See Discord's [Execute Webhook documentation](https://docs.discord.com/developers/resources/webhook#execute-webhook) for thread requirements.
+
+## Exception suppression
+
+Use `suppress` to skip records carrying specified exception types, including subclasses:
+
+```python
+from loguru import logger
+from loguru_discord import DiscordSink
+
+logger.add(
+    DiscordSink(
+        "https://discord.com/api/webhooks/00000000/XXXXXXXX",
+        suppress=[ZeroDivisionError],
+    )
+)
+
+try:
+    value = 1 / 0
+except ZeroDivisionError:
+    logger.exception("This record stays out of Discord")
+```
+
+Suppression applies only to this Discord sink. Other Loguru sinks still receive the record. A record must carry exception information, as `logger.exception()` or `logger.opt(exception=...)` provides; mentioning an exception in the message text does not suppress it.
+
+## Long messages
+
+Plain output falls back to a **`message.txt` attachment** when the body exceeds Discord's 2,000-character content limit, including Markdown code-block fences.
+
+Rich output uses the same fallback when the body, level heading, and timestamps exceed the 4,000-character Components V2 text limit, including Markdown formatting. The oversized record is sent as a plain webhook payload without Components V2 flags. Subsequent records that fit the limit keep their rich formatting.
+
+The attachment contains the complete formatted log record, including any traceback, encoded as UTF-8 without code-block fences. Messages are not truncated.
+
+## Standard-library logging
+
+Set `intercept=True` to route standard-library logging through Loguru and its configured sinks:
+
+```python
+import logging
+
+from loguru import logger
+from loguru_discord import DiscordSink
+
+logger.add(
+    DiscordSink(
+        "https://discord.com/api/webhooks/00000000/XXXXXXXX",
+        intercept=True,
+        intercept_level_map={"NOTICE": "INFO"},
+    )
+)
+
+logging.info("This record also reaches Loguru")
+logging.addLevelName(25, "NOTICE")
+logging.log(25, "Custom level mapped to INFO")
+```
+
+Enabling interception calls [Intercept.setup()](intercept.md#loguru_discord.intercept.Intercept.setup). It **replaces and closes existing root logging handlers** and sets the root logging level to `0`. Named loggers keep their own levels and handlers; records must propagate to the root logger to reach this interceptor. Configure interception once during application startup.
+
+To configure interception separately from a Discord sink, call `Intercept.setup(level_map={"NOTICE": "INFO"})`. Recognized Loguru level names are used directly. Unrecognized names fall back to the record's numeric level. Records emitted during webhook delivery are ignored by the interceptor to avoid recursive logging.
+
+## API reference
+
+- [DiscordSink](sink.md): constructor options and webhook delivery.
+- [Intercept](intercept.md): level mapping and standard-library logging setup.
+
+## Releases and contributing
+
+See [GitHub releases](https://github.com/EthanC/Loguru-Discord/releases) for version history and release notes. Loguru-Discord loosely follows [Semantic Versioning](https://semver.org/).
+
+Read the [contributor guide](https://github.com/EthanC/Loguru-Discord/blob/main/.github/CONTRIBUTING.md) for local development and documentation commands. Report bugs and request features in the [issue tracker](https://github.com/EthanC/Loguru-Discord/issues).
+
+Loguru-Discord is not affiliated with or endorsed by Loguru or Discord.
