@@ -128,7 +128,7 @@ class DiscordSink(Handler):
             else:
                 webhook.components = UNSET
                 webhook.set_flag(MessageFlags.IS_COMPONENTS_V2, None)
-                webhook._set_with_components(None)
+                webhook._remove_query_param("with_components")
                 webhook.add_attachment("message.txt", message.encode())
         elif len(body) > _PLAIN_TEXT_LIMIT:
             webhook.add_attachment("message.txt", message.encode())

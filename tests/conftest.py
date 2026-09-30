@@ -3,10 +3,10 @@ from collections.abc import Callable, Iterator
 from copy import deepcopy
 from typing import Any
 
-import httpx
 import pytest
 from clyde import Webhook
 from loguru import logger
+from niquests import Response
 
 WEBHOOK_URL = "https://discord.com/api/webhooks/00000000/test-token"
 
@@ -20,11 +20,13 @@ def webhook_url() -> str:
 def deliveries(monkeypatch: pytest.MonkeyPatch) -> list[Webhook]:
     payloads: list[Webhook] = []
 
-    def execute(webhook: Webhook) -> httpx.Response:
+    def execute(webhook: Webhook) -> Response:
         payload = deepcopy(webhook)
         payload._validate()
         payloads.append(payload)
-        return httpx.Response(204, request=httpx.Request("POST", webhook.url))
+        response = Response()
+        response.status_code = 204
+        return response
 
     monkeypatch.setattr(Webhook, "execute", execute)
     return payloads

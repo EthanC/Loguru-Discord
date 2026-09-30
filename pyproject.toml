@@ -1,6 +1,6 @@
 [project]
 name = "loguru-discord"
-version = "2.1.0"
+version = "2.2.0"
 description = "A lightweight sink for Loguru that forward logs to Discord via the Webhook API."
 readme = "README.md"
 authors = [
@@ -8,7 +8,7 @@ authors = [
 ]
 requires-python = ">=3.11"
 dependencies = [
-    "discord-clyde>=0.5.0",
+    "discord-clyde>=1.1.0",
     "loguru>=0.7.3",
 ]
 license = "AGPL-3.0"
@@ -36,16 +36,16 @@ Changelog = "https://github.com/EthanC/Loguru-Discord/releases"
 Twitter = "https://x.com/Mxtive"
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling>=1.32.4"]
 build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
-    "ruff>=0.14.10",
-    "pytest>=9.0.2",
-    "pytest-cov>=7.0.0",
-    "environs>=14.5.0",
-    "ty>=0.0.8",
+    "ruff>=0.16.9",
+    "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
+    "environs>=15.2.0",
+    "ty>=0.0.84",
 ]
 
 [tool.ruff]
@@ -84,7 +84,7 @@ log_cli_level = "DEBUG"
 packages = ["loguru_discord"]
 
 [tool.tox]
-requires = ["tox>=4.32.0", "tox-uv>=1.29.0"]
+requires = ["tox>=4.64.5", "tox-uv>=1.36.0"]
 env_list = [
     "3.14",
     "3.13",

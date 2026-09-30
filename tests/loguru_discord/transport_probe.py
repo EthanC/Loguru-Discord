@@ -5,8 +5,8 @@ import sys
 from typing import Any
 from unittest.mock import patch
 
-import httpx
 from loguru import logger
+from niquests import ConnectionError, HTTPError, PreparedRequest, Response, Session
 
 from loguru_discord import DiscordSink
 from loguru_discord._delivery import delivery_active
@@ -14,23 +14,27 @@ from loguru_discord._delivery import delivery_active
 
 def run(enqueue: bool, failure: str, webhook_url: str) -> None:
     """Check delivery counts and guard cleanup for synchronous or queued logs."""
-    requests: list[httpx.Request] = []
+    requests: list[PreparedRequest] = []
     guard_states: list[bool] = []
-    client_type = httpx.Client
     emit = DiscordSink.emit
 
-    def transport(request: httpx.Request) -> httpx.Response:
+    def transport(
+        session: Session, request: PreparedRequest, **options: Any
+    ) -> Response:
         requests.append(request)
         assert len(requests) <= 2, "Transport logs triggered extra deliveries"
+        logging.getLogger("urllib3.connectionpool").debug("Sending webhook request")
+        response = Response()
+        response.status_code = 204
+        response._content = b""
+        response.request = request
+        response.url = request.url
         if len(requests) == 1:
             if failure == "transport":
-                raise httpx.ConnectError("Transport failure", request=request)
+                raise ConnectionError("Transport failure", request=request)
             if failure == "http":
-                return httpx.Response(500)
-        return httpx.Response(204)
-
-    def client(**options: Any) -> httpx.Client:
-        return client_type(transport=httpx.MockTransport(transport), **options)
+                response.status_code = 500
+        return response
 
     def checked_emit(sink: DiscordSink, record: logging.LogRecord) -> None:
         try:
@@ -40,7 +44,7 @@ def run(enqueue: bool, failure: str, webhook_url: str) -> None:
 
     logger.remove()
     with (
-        patch("clyde.webhook.httpx.Client", client),
+        patch("clyde.webhook.Session.send", transport),
         patch.object(DiscordSink, "emit", checked_emit),
     ):
         sink = DiscordSink(webhook_url, intercept=True)
@@ -56,7 +60,7 @@ def run(enqueue: bool, failure: str, webhook_url: str) -> None:
             if failure != "none" and not enqueue:
                 try:
                     logger.info("First application record")
-                except (httpx.ConnectError, httpx.HTTPStatusError):
+                except (ConnectionError, HTTPError):
                     pass
                 else:
                     raise AssertionError("Expected transport failure")
@@ -66,8 +70,10 @@ def run(enqueue: bool, failure: str, webhook_url: str) -> None:
             logging.info("Second application record")
             logger.complete()
             assert len(requests) == 2
-            assert b"First application record" in requests[0].read()
-            assert b"Second application record" in requests[1].read()
+            assert isinstance(requests[0].body, bytes)
+            assert b"First application record" in requests[0].body
+            assert isinstance(requests[1].body, bytes)
+            assert b"Second application record" in requests[1].body
             assert guard_states == [False, False]
             assert not delivery_active.get()
         finally:
