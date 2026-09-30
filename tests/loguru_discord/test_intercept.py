@@ -116,3 +116,55 @@ def test_intercept_preserves_exception(
     assert exception.traceback is error.__traceback__
     assert "Traceback (most recent call last):" in formatted[0]
     assert "ValueError: Invalid application value" in formatted[0]
+
+
+@pytest.mark.parametrize(
+    ("level_name", "level_no", "level_map", "expected_name", "expected_no"),
+    [
+        ("WARNING", 30, {"WARNING": "ERROR", "ERROR": "CRITICAL"}, "ERROR", 40),
+        ("WARNING", 30, {"ERROR": "CRITICAL", "WARNING": "ERROR"}, "ERROR", 40),
+        ("WARNING", 30, {}, "WARNING", 30),
+        ("INFO", 20, None, "INFO", 20),
+        ("ERROR", 40, {"WARNING": "CRITICAL"}, "ERROR", 40),
+        ("NOTICE", 35, {"NOTICE": "SUCCESS"}, "SUCCESS", 25),
+        ("SUCCESS", 25, None, "SUCCESS", 25),
+        ("NOTICE", 35, None, "Level 35", 35),
+        ("NOTICE", 35, {"NOTICE": "UNREGISTERED"}, "Level 35", 35),
+    ],
+)
+def test_level_mapping_preserves_original_record(
+    level_name: str,
+    level_no: int,
+    level_map: dict[str, str] | None,
+    expected_name: str,
+    expected_no: int,
+    add_sink: Callable[..., int],
+) -> None:
+    forwarded: list[dict[str, Any]] = []
+    observed: list[dict[str, Any]] = []
+
+    def capture(message: Any) -> None:
+        forwarded.append(message.record)
+
+    class Observer(logging.Handler):
+        def emit(self, record: logging.LogRecord) -> None:
+            observed.append(record.__dict__.copy())
+
+    add_sink(capture, level="TRACE")
+    Intercept.setup(level_map)
+    root = logging.getLogger()
+    root.addHandler(Observer())
+    record = logging.LogRecord(
+        __name__, level_no, __file__, 1, "Application %s", ("record",), None
+    )
+    record.levelname = level_name
+    original = record.__dict__.copy()
+
+    root.handle(record)
+
+    assert len(forwarded) == 1
+    assert forwarded[0]["message"] == "Application record"
+    assert forwarded[0]["level"].name == expected_name
+    assert forwarded[0]["level"].no == expected_no
+    assert observed == [original]
+    assert record.__dict__ == original

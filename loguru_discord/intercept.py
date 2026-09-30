@@ -19,26 +19,26 @@ class Intercept(Handler):
         """Initialize an Intercept handler."""
         super().__init__()
 
-        self.level_map: dict[str, str] = level_map
+        self.level_map: dict[str, str] | None = level_map
 
-    def emit(self: Self, record: LogRecord):
+    def emit(self: Self, record: LogRecord) -> None:
         """Log emitter."""
         if delivery_active.get():
             return
 
-        level: int | str = record.levelno
+        level_name: str = (
+            self.level_map.get(record.levelname, record.levelname)
+            if self.level_map
+            else record.levelname
+        )
+        level: int | str
         frame: FrameType | None = logging.currentframe()
         depth: int = 0
 
         try:
-            if self.level_map:
-                for key, value in self.level_map.items():
-                    if record.levelname == key:
-                        record.levelname = value
-
-            level = logger.level(record.levelname).name
-        except Exception as e:
-            logger.opt(exception=e).trace("Failed to determine logger intercept level")
+            level = logger.level(level_name).name
+        except ValueError:
+            level = record.levelno
 
         while frame and (depth == 0 or frame.f_code.co_filename == logging.__file__):
             frame = frame.f_back
