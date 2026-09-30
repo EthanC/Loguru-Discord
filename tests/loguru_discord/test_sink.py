@@ -12,6 +12,7 @@ from loguru import logger
 from msgspec import UNSET
 
 from loguru_discord import DiscordSink
+from loguru_discord._delivery import delivery_active
 
 TEST_MESSAGE = "An application log record"
 AVATAR_URL = "https://example.com/avatar.png"
@@ -143,6 +144,36 @@ def test_emit_long(
     assert attachment.content == message.encode()
 
 
+@pytest.mark.parametrize("offset", [-1, 0, 1])
+@pytest.mark.parametrize("character", ["x", "é", "🚀"])
+def test_plain_text_budget(
+    offset: int,
+    character: str,
+    webhook_url: str,
+    deliveries: list[Webhook],
+    add_sink: Callable[..., int],
+) -> None:
+    message = character * (2000 - len("```\n\n```") + offset)
+    add_sink(DiscordSink(webhook_url))
+
+    logger.info(message)
+
+    assert len(deliveries) == 1
+    payload = deliveries[0]
+    assert payload.components is UNSET
+    assert not payload.get_flag(MessageFlags.IS_COMPONENTS_V2)
+    if offset <= 0:
+        assert payload.content == Markdown.code_block(message)
+        assert len(payload.content) == 2000 + offset
+        assert payload._attachments == []
+    else:
+        assert payload.content is UNSET
+        assert len(payload._attachments) == 1
+        attachment = payload._attachments[0]
+        assert attachment.filename == "message.txt"
+        assert attachment.content == message.encode()
+
+
 @pytest.mark.parametrize("rich", [False, True])
 def test_emit_suppressed(
     rich: bool,
@@ -197,6 +228,40 @@ def test_execution_failure_propagates(
 
     with pytest.raises(RuntimeError, match="Webhook execution failed"):
         logger.info(TEST_MESSAGE)
+
+
+@pytest.mark.parametrize("already_active", [False, True])
+@pytest.mark.parametrize("failure", [False, True])
+def test_delivery_restores_previous_context(
+    already_active: bool,
+    failure: bool,
+    webhook_url: str,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    guard_states: list[bool] = []
+
+    def execute(webhook: Webhook) -> None:
+        guard_states.append(delivery_active.get())
+        if failure:
+            raise RuntimeError("Webhook execution failed")
+
+    monkeypatch.setattr(Webhook, "execute", execute)
+    sink = DiscordSink(webhook_url)
+    record = logging.LogRecord(
+        __name__, logging.INFO, __file__, 1, TEST_MESSAGE, (), None
+    )
+    token = delivery_active.set(already_active)
+    try:
+        if failure:
+            with pytest.raises(RuntimeError, match="Webhook execution failed"):
+                sink.emit(record)
+        else:
+            sink.emit(record)
+
+        assert guard_states == [True]
+        assert delivery_active.get() is already_active
+    finally:
+        delivery_active.reset(token)
 
 
 def test_rich_records_have_independent_payloads(

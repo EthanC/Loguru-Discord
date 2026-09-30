@@ -90,6 +90,29 @@ def test_intercept_caller(
     assert record["message"] == "Application record"
 
 
+def test_intercept_without_caller_frame(
+    add_sink: Callable[..., int], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    records: list[dict[str, Any]] = []
+
+    def capture(message: Any) -> None:
+        records.append(message.record)
+
+    add_sink(capture)
+    monkeypatch.setattr("loguru_discord.intercept.logging.currentframe", lambda: None)
+    record = logging.LogRecord(
+        __name__, logging.WARNING, __file__, 1, "Application %s", ("record",), None
+    )
+
+    Intercept(None).emit(record)
+
+    assert len(records) == 1
+    assert records[0]["message"] == "Application record"
+    assert records[0]["level"].name == "WARNING"
+    assert records[0]["level"].no == logging.WARNING
+    assert records[0]["exception"] is None
+
+
 @pytest.mark.parametrize("named", [False, True])
 def test_intercept_preserves_exception(
     named: bool, add_sink: Callable[..., int]

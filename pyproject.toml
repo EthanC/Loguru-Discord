@@ -70,6 +70,12 @@ convention = "pep257"
 split-on-trailing-comma = false
 
 [tool.pytest.ini_options]
+addopts = [
+    "--cov=loguru_discord",
+    "--cov-branch",
+    "--cov-report=term-missing",
+    "--cov-fail-under=100",
+]
 xfail_strict = true
 log_cli = true
 log_cli_level = "DEBUG"
