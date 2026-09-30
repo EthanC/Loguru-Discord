@@ -4,13 +4,17 @@ import logging
 from copy import deepcopy
 from datetime import datetime
 from logging import Handler, LogRecord
-from typing import Self
+from typing import Final, Self
 
 from clyde import Markdown, Timestamp, Webhook
 from clyde.components import Container, Seperator, SeperatorSpacing, TextDisplay
+from clyde.webhook import MessageFlags
+from msgspec import UNSET
 
 from loguru_discord._delivery import delivery_active
 from loguru_discord.intercept import Intercept
+
+_RICH_TEXT_LIMIT: Final[int] = 4000
 
 
 class DiscordSink(Handler):
@@ -88,16 +92,16 @@ class DiscordSink(Handler):
 
         if self.rich:
             timestamp: datetime = datetime.now()
+            heading: str = Markdown.header_3(record.levelname)
+            footer: str = Markdown.subtext(
+                f"{Timestamp.long_date_time(timestamp)} ({Timestamp.relative_time(timestamp)})"
+            )
             container: Container = Container(
                 components=[
-                    TextDisplay(content=Markdown.header_3(record.levelname)),
+                    TextDisplay(content=heading),
                     TextDisplay(content=body),
                     Seperator(divider=True, spacing=SeperatorSpacing.SMALL),
-                    TextDisplay(
-                        content=Markdown.subtext(
-                            f"{Timestamp.long_date_time(timestamp)} ({Timestamp.relative_time(timestamp)})"
-                        )
-                    ),
+                    TextDisplay(content=footer),
                 ]
             )
 
@@ -117,7 +121,13 @@ class DiscordSink(Handler):
                 case _:
                     pass
 
-            webhook.add_component(container)
+            if len(heading) + len(body) + len(footer) <= _RICH_TEXT_LIMIT:
+                webhook.add_component(container)
+            else:
+                webhook.components = UNSET
+                webhook.set_flag(MessageFlags.IS_COMPONENTS_V2, None)
+                webhook._set_with_components(None)
+                webhook.set_content(body, fallback=True)
         else:
             webhook.set_content(body, fallback=True)
 

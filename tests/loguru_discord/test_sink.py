@@ -1,9 +1,11 @@
 import logging
 from collections.abc import Callable
 from copy import deepcopy
+from datetime import datetime, timezone
+from unittest.mock import Mock
 
 import pytest
-from clyde import Markdown, Webhook
+from clyde import Markdown, Timestamp, Webhook
 from clyde.components import Container, Seperator, TextDisplay
 from clyde.webhook import AllowedMentions, MessageFlags
 from loguru import logger
@@ -275,6 +277,132 @@ def test_payload_preserves_webhook_configuration(
         assert payload._query_params["thread_id"] == "456"
         assert payload.get_flag(MessageFlags.IS_COMPONENTS_V2) is rich
     assert sink.webhook == template
+
+
+@pytest.mark.parametrize("level", ["INFO", "CRITICAL"])
+@pytest.mark.parametrize("offset", [-1, 0, 1])
+@pytest.mark.parametrize("character", ["x", "é", "🚀"])
+def test_rich_text_budget(
+    level: str,
+    offset: int,
+    character: str,
+    webhook_url: str,
+    deliveries: list[Webhook],
+    add_sink: Callable[..., int],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    timestamp = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    monkeypatch.setattr(
+        "loguru_discord.sink.datetime", Mock(now=Mock(return_value=timestamp))
+    )
+    heading = f"### {level}"
+    footer = f"-# {Timestamp.long_date_time(timestamp)} ({Timestamp.relative_time(timestamp)})"
+    budget = 4000 - len(heading) - len(footer) - len("```\n\n```")
+    message = character * (budget + offset)
+    add_sink(DiscordSink(webhook_url, rich=True))
+
+    logger.log(level, message)
+
+    assert len(deliveries) == 1
+    payload = deliveries[0]
+    if offset <= 0:
+        assert isinstance(payload.components, list)
+        container = payload.components[0]
+        assert isinstance(container, Container)
+        text = [
+            component.content
+            for component in container.components
+            if isinstance(component, TextDisplay)
+        ]
+        assert text == [heading, Markdown.code_block(message), footer]
+        assert sum(map(len, text)) == 4000 + offset
+        assert payload.get_flag(MessageFlags.IS_COMPONENTS_V2)
+        assert payload._attachments == []
+    else:
+        assert payload.components is UNSET
+        assert payload.content is UNSET
+        assert not payload.get_flag(MessageFlags.IS_COMPONENTS_V2)
+        assert "with_components" not in payload._query_params
+        assert len(payload._attachments) == 1
+        assert payload._attachments[0].filename == "message.txt"
+        assert payload._attachments[0].content == Markdown.code_block(message).encode()
+
+
+def test_rich_short_oversized_short_payloads(
+    webhook_url: str, deliveries: list[Webhook], add_sink: Callable[..., int]
+) -> None:
+    sink = DiscordSink(
+        webhook_url, username="Custom Username", avatar_url=AVATAR_URL, rich=True
+    )
+    sink.webhook.set_flag(MessageFlags.SUPPRESS_NOTIFICATIONS, True)
+    sink.webhook.set_wait(True).set_thread_id("456")
+    add_sink(sink)
+    messages = ["First short record", "Oversized 🚀 record " * 300, "Last short record"]
+
+    for message in messages:
+        logger.info(message)
+
+    assert len(deliveries) == 3
+    first, oversized, last = deliveries
+    for payload, message in [(first, messages[0]), (last, messages[2])]:
+        assert isinstance(payload.components, list)
+        assert len(payload.components) == 1
+        container = payload.components[0]
+        assert isinstance(container, Container)
+        body = container.components[1]
+        assert isinstance(body, TextDisplay)
+        assert body.content == Markdown.code_block(message)
+        assert payload.get_flag(MessageFlags.IS_COMPONENTS_V2)
+        assert payload._attachments == []
+    assert oversized.components is UNSET
+    assert oversized.content is UNSET
+    assert not oversized.get_flag(MessageFlags.IS_COMPONENTS_V2)
+    assert len(oversized._attachments) == 1
+    assert (
+        oversized._attachments[0].content == Markdown.code_block(messages[1]).encode()
+    )
+    for payload in deliveries:
+        assert payload.username == "Custom Username"
+        assert payload.avatar_url == AVATAR_URL
+        assert payload.get_flag(MessageFlags.SUPPRESS_NOTIFICATIONS)
+        assert payload._query_params["wait"] == "True"
+        assert payload._query_params["thread_id"] == "456"
+
+
+def test_oversized_traceback_preserves_formatted_record(
+    webhook_url: str, deliveries: list[Webhook], add_sink: Callable[..., int]
+) -> None:
+    formatted: list[str] = []
+
+    class Capture(logging.Handler):
+        def emit(self, record: logging.LogRecord) -> None:
+            formatted.append(record.getMessage())
+
+    options = {"format": "{level.name} | {message}"}
+    add_sink(Capture(), **options)
+    sink = DiscordSink(webhook_url, rich=True)
+    sink.webhook.add_component(TextDisplay(content="Configured component"))
+    add_sink(sink, **options)
+
+    try:
+        raise ValueError("Invalid Unicode value 🚀 " * 250)
+    except ValueError:
+        logger.exception("Application failure")
+
+    assert len(deliveries) == 1
+    payload = deliveries[0]
+    assert payload.components is UNSET
+    assert not payload.get_flag(MessageFlags.IS_COMPONENTS_V2)
+    assert "with_components" not in payload._query_params
+    assert len(payload._attachments) == 1
+    content = payload._attachments[0].content
+    assert content == Markdown.code_block(formatted[0]).encode()
+    assert isinstance(content, bytes)
+    assert b"ERROR | Application failure" in content
+    assert b"Traceback (most recent call last):" in content
+    assert sink.webhook.get_flag(MessageFlags.IS_COMPONENTS_V2)
+    assert isinstance(sink.webhook.components, list)
+    assert len(sink.webhook.components) == 1
 
 
 @pytest.mark.parametrize("rich", [False, True])

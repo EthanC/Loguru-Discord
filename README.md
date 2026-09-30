@@ -58,6 +58,12 @@ All configuration is handled on `DiscordSink` via optional keyword arguments.
 | `intercept_level_map` | Map custom log levels to Loguru log levels.                          | `None`                         |
 | `suppress`            | List of Exception types to not forward to Discord.                   | `None`                         |
 
+### Long messages
+
+Plain messages that exceed Discord's 2,000-character content limit are sent as a `message.txt` attachment. With `rich=True`, the sink uses the same attachment fallback when the body, level heading, and timestamp exceed the 4,000-character Components V2 text limit, including Markdown formatting.
+
+The attachment contains the complete formatted log record, including any traceback, encoded as UTF-8. Oversized rich records use a plain webhook payload without Components V2 flags. Subsequent records that fit the limit retain rich formatting.
+
 ### Example
 
 Here’s a complete, end-to-end example using Loguru-Discord:
