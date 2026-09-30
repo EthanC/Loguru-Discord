@@ -1,10 +1,11 @@
 import logging
 from collections.abc import Callable
+from copy import deepcopy
 
 import pytest
 from clyde import Markdown, Webhook
 from clyde.components import Container, Seperator, TextDisplay
-from clyde.webhook import MessageFlags
+from clyde.webhook import AllowedMentions, MessageFlags
 from loguru import logger
 from msgspec import UNSET
 
@@ -194,3 +195,128 @@ def test_execution_failure_propagates(
 
     with pytest.raises(RuntimeError, match="Webhook execution failed"):
         logger.info(TEST_MESSAGE)
+
+
+def test_rich_records_have_independent_payloads(
+    webhook_url: str, deliveries: list[Webhook], add_sink: Callable[..., int]
+) -> None:
+    sink = DiscordSink(webhook_url, rich=True)
+    add_sink(sink)
+    messages = [f"Record {index}" for index in range(10)]
+
+    for message in messages:
+        logger.info(message)
+
+    assert len(deliveries) == len(messages)
+    for payload, message in zip(deliveries, messages):
+        assert isinstance(payload.components, list)
+        assert len(payload.components) == 1
+        container = payload.components[0]
+        assert isinstance(container, Container)
+        body = container.components[1]
+        assert isinstance(body, TextDisplay)
+        assert body.content == Markdown.code_block(message)
+        assert payload._attachments == []
+    assert sink.webhook.components is UNSET
+    assert sink.webhook.flags is UNSET
+    assert sink.webhook._query_params == {}
+
+
+def test_plain_short_long_short_payloads(
+    webhook_url: str, deliveries: list[Webhook], add_sink: Callable[..., int]
+) -> None:
+    sink = DiscordSink(webhook_url)
+    add_sink(sink)
+    messages = ["First short record", "Long record " * 250, "Last short record"]
+
+    for message in messages:
+        logger.info(message)
+
+    assert len(deliveries) == 3
+    first, long, last = deliveries
+    assert first.content == Markdown.code_block(messages[0])
+    assert first._attachments == []
+    assert long.content is UNSET
+    assert len(long._attachments) == 1
+    assert long._attachments[0].content == Markdown.code_block(messages[1]).encode()
+    assert last.content == Markdown.code_block(messages[2])
+    assert last._attachments == []
+    assert sink.webhook.content is UNSET
+    assert sink.webhook._attachments == []
+
+
+@pytest.mark.parametrize("rich", [False, True])
+def test_payload_preserves_webhook_configuration(
+    rich: bool,
+    webhook_url: str,
+    deliveries: list[Webhook],
+    add_sink: Callable[..., int],
+) -> None:
+    sink = DiscordSink(
+        webhook_url, username="Custom Username", avatar_url=AVATAR_URL, rich=rich
+    )
+    sink.webhook.set_allowed_mentions(AllowedMentions(parse=[], users=["123"]))
+    sink.webhook.set_flag(MessageFlags.SUPPRESS_NOTIFICATIONS, True)
+    sink.webhook.set_wait(True).set_thread_id("456")
+    template = deepcopy(sink.webhook)
+    add_sink(sink)
+
+    for _ in range(3):
+        logger.info(TEST_MESSAGE)
+
+    assert len(deliveries) == 3
+    for payload in deliveries:
+        assert payload.username == template.username
+        assert payload.avatar_url == template.avatar_url
+        assert payload.allowed_mentions == template.allowed_mentions
+        assert payload.allowed_mentions is not sink.webhook.allowed_mentions
+        assert payload.get_flag(MessageFlags.SUPPRESS_NOTIFICATIONS)
+        assert payload._query_params["wait"] == "True"
+        assert payload._query_params["thread_id"] == "456"
+        assert payload.get_flag(MessageFlags.IS_COMPONENTS_V2) is rich
+    assert sink.webhook == template
+
+
+@pytest.mark.parametrize("rich", [False, True])
+def test_failed_payload_does_not_contaminate_next_record(
+    rich: bool,
+    webhook_url: str,
+    add_sink: Callable[..., int],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    attempts: list[Webhook] = []
+
+    def execute(webhook: Webhook) -> None:
+        attempts.append(deepcopy(webhook))
+        if len(attempts) == 1:
+            webhook.set_username("Failed payload")
+            webhook.set_thread_id("failed-thread")
+            webhook.add_attachment("failed.txt", b"Failed payload")
+            raise RuntimeError("Execution failed")
+
+    monkeypatch.setattr(Webhook, "execute", execute)
+    sink = DiscordSink(webhook_url, username="Custom Username", rich=rich)
+    sink.webhook.set_thread_id("456")
+    template = deepcopy(sink.webhook)
+    add_sink(sink)
+
+    with pytest.raises(RuntimeError, match="Execution failed"):
+        logger.info("Failed record")
+    logger.info("Successful record")
+
+    assert len(attempts) == 2
+    payload = attempts[1]
+    assert payload.username == "Custom Username"
+    assert payload._query_params["thread_id"] == "456"
+    assert payload._attachments == []
+    if rich:
+        assert isinstance(payload.components, list)
+        assert len(payload.components) == 1
+        container = payload.components[0]
+        assert isinstance(container, Container)
+        body = container.components[1]
+        assert isinstance(body, TextDisplay)
+        assert body.content == Markdown.code_block("Successful record")
+    else:
+        assert payload.content == Markdown.code_block("Successful record")
+    assert sink.webhook == template

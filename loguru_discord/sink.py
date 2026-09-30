@@ -1,6 +1,7 @@
 """Define the DiscordSink class and its associates."""
 
 import logging
+from copy import deepcopy
 from datetime import datetime
 from logging import Handler, LogRecord
 from typing import Self
@@ -82,6 +83,7 @@ class DiscordSink(Handler):
                 return
 
         body: str = Markdown.code_block(record.getMessage())
+        webhook: Webhook = deepcopy(self.webhook)
 
         if self.rich:
             timestamp: datetime = datetime.now()
@@ -114,10 +116,8 @@ class DiscordSink(Handler):
                 case _:
                     pass
 
-            self.webhook.add_component(container)
+            webhook.add_component(container)
         else:
-            self.webhook.set_content(
-                Markdown.code_block(record.getMessage()), fallback=True
-            )
+            webhook.set_content(body, fallback=True)
 
-        self.webhook.execute()
+        webhook.execute()
