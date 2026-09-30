@@ -1,188 +1,196 @@
 import logging
-import sys
-import unittest
-from logging import LogRecord
-from typing import Final
-from unittest import TestCase
+from collections.abc import Callable
 
-from environs import env
+import pytest
+from clyde import Markdown, Webhook
+from clyde.components import Container, Seperator, TextDisplay
+from clyde.webhook import MessageFlags
 from loguru import logger
+from msgspec import UNSET
 
 from loguru_discord import DiscordSink
 
-TEST_MESSAGE: Final[str] = (
-    "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
-)
-TESTS_WEBHOOK_URL: Final[str] = env.url("TESTS_WEBHOOK_URL").geturl()
+TEST_MESSAGE = "An application log record"
+AVATAR_URL = "https://example.com/avatar.png"
 
 
-def test_emit() -> None:
-    """
-    A test-case to validate a critical log is caught and forwarded to Discord.
-    """
-    handler_id: int = logger.add(DiscordSink(TESTS_WEBHOOK_URL), backtrace=False)
-
-    try:
-        _: float = 1 / 0
-    except ZeroDivisionError as e:
-        logger.opt(exception=e).critical(TEST_MESSAGE)
-
-    logger.remove(handler_id)
-
-
-def test_emit_critical_rich() -> None:
-    """
-    A test-case to validate a critical log is caught and forwarded to Discord
-    with rich formatting.
-    """
-    handler_id: int = logger.add(
-        DiscordSink(TESTS_WEBHOOK_URL, rich=True), backtrace=False
-    )
-
-    try:
-        _: float = 1 / 0
-    except ZeroDivisionError as e:
-        logger.opt(exception=e).critical(TEST_MESSAGE)
-
-    logger.remove(handler_id)
-
-
-def test_emit_error_rich() -> None:
-    """
-    A test-case to validate an error log is caught and forwarded to Discord
-    with rich formatting.
-    """
-    handler_id: int = logger.add(
-        DiscordSink(TESTS_WEBHOOK_URL, username="Custom Username", rich=True),
-        backtrace=False,
-    )
-
-    try:
-        _: float = 1 / 0
-    except ZeroDivisionError as e:
-        logger.opt(exception=e).error(TEST_MESSAGE)
-
-    logger.remove(handler_id)
-
-
-def test_emit_warning_rich() -> None:
-    """
-    A test-case to validate a warning log is caught and forwarded to Discord
-    with rich formatting.
-    """
-    handler_id: int = logger.add(
+@pytest.mark.parametrize("rich", [False, True])
+def test_emit(
+    rich: bool,
+    webhook_url: str,
+    deliveries: list[Webhook],
+    add_sink: Callable[..., int],
+) -> None:
+    add_sink(
         DiscordSink(
-            TESTS_WEBHOOK_URL,
-            username="Custom Avatar",
-            avatar_url="https://i.imgur.com/7xeGMSf.png",
-            rich=True,
-        ),
-        backtrace=False,
+            webhook_url, username="Custom Username", avatar_url=AVATAR_URL, rich=rich
+        )
     )
 
-    try:
-        _: float = 1 / 0
-    except ZeroDivisionError as e:
-        logger.opt(exception=e).warning(TEST_MESSAGE)
+    logger.info(TEST_MESSAGE)
 
-    logger.remove(handler_id)
-
-
-def test_emit_info_rich() -> None:
-    """
-    A test-case to validate an info log is caught and forwarded to Discord
-    with rich formatting.
-    """
-    handler_id: int = logger.add(
-        DiscordSink(TESTS_WEBHOOK_URL, rich=True), backtrace=False
-    )
-
-    try:
-        _: float = 1 / 0
-    except ZeroDivisionError as e:
-        logger.opt(exception=e).info(TEST_MESSAGE)
-
-    logger.remove(handler_id)
+    assert len(deliveries) == 1
+    payload = deliveries[0]
+    assert payload.url == webhook_url
+    assert payload.username == "Custom Username"
+    assert payload.avatar_url == AVATAR_URL
+    assert payload._attachments == []
+    if rich:
+        assert isinstance(payload.components, list)
+        assert len(payload.components) == 1
+        container = payload.components[0]
+        assert isinstance(container, Container)
+        assert isinstance(container.components[1], TextDisplay)
+        assert container.components[1].content == Markdown.code_block(TEST_MESSAGE)
+        assert payload.get_flag(MessageFlags.IS_COMPONENTS_V2)
+        assert payload.content is UNSET
+    else:
+        assert payload.content == Markdown.code_block(TEST_MESSAGE)
+        assert payload.components is UNSET
+        assert not payload.get_flag(MessageFlags.IS_COMPONENTS_V2)
 
 
-def test_emit_debug_rich() -> None:
-    """
-    A test-case to validate a debug log is caught and forwarded to Discord
-    with rich formatting.
-    """
-    handler_id: int = logger.add(
-        DiscordSink(TESTS_WEBHOOK_URL, rich=True), backtrace=False
-    )
+@pytest.mark.parametrize(
+    ("level", "color"),
+    [
+        ("CRITICAL", 0x000000),
+        ("ERROR", 0xD22D39),
+        ("WARNING", 0xCE9C5C),
+        ("SUCCESS", 0x43A25A),
+        ("INFO", 0xFFFFFF),
+        ("DEBUG", 0x5865F2),
+        ("TRACE", UNSET),
+    ],
+)
+def test_rich_formatting(
+    level: str,
+    color: object,
+    webhook_url: str,
+    deliveries: list[Webhook],
+    add_sink: Callable[..., int],
+) -> None:
+    add_sink(DiscordSink(webhook_url, rich=True), level="TRACE")
 
-    try:
-        _: float = 1 / 0
-    except ZeroDivisionError as e:
-        logger.opt(exception=e).debug(TEST_MESSAGE)
+    logger.log(level, TEST_MESSAGE)
 
-    logger.remove(handler_id)
-
-
-def test_emit_rich_long() -> None:
-    """
-    A test-case to validate an excessively-long log is caught and forwarded to
-    Discord with rich formatting.
-    """
-    handler_id: int = logger.add(
-        DiscordSink(TESTS_WEBHOOK_URL, rich=True), backtrace=False
-    )
-
-    try:
-        _: float = 1 / 0
-    except ZeroDivisionError as e:
-        logger.opt(exception=e).error(TEST_MESSAGE * 5)
-
-    logger.remove(handler_id)
-
-
-def test_emit_long() -> None:
-    """
-    A test-case to validate an excessively-long log is caught and forwarded to
-    Discord.
-    """
-    handler_id: int = logger.add(DiscordSink(TESTS_WEBHOOK_URL), backtrace=False)
-
-    try:
-        _: float = 1 / 0
-    except ZeroDivisionError as e:
-        logger.opt(exception=e).error(TEST_MESSAGE * 25)
-
-    logger.remove(handler_id)
+    assert len(deliveries) == 1
+    payload = deliveries[0]
+    assert isinstance(payload.components, list)
+    container = payload.components[0]
+    assert isinstance(container, Container)
+    assert container.accent_color == color
+    assert len(container.components) == 4
+    heading, body, separator, timestamp = container.components
+    assert isinstance(heading, TextDisplay)
+    assert heading.content == f"### {level}"
+    assert isinstance(body, TextDisplay)
+    assert body.content == Markdown.code_block(TEST_MESSAGE)
+    assert isinstance(separator, Seperator)
+    assert separator.divider
+    assert isinstance(timestamp, TextDisplay)
+    assert timestamp.content.startswith("-# <t:")
+    assert ":F> (<t:" in timestamp.content
+    assert timestamp.content.endswith(":R>)")
 
 
-def test_emit_suppressed() -> None:
-    """
-    A test-case to validate an Exception of a suppressed type is not forwarded
-    to Discord.
-    """
-    handler_id: int = logger.add(
-        DiscordSink(TESTS_WEBHOOK_URL, suppress=[ZeroDivisionError]), backtrace=False
-    )
+@pytest.mark.parametrize("rich", [False, True])
+def test_emit_exception(
+    rich: bool,
+    webhook_url: str,
+    deliveries: list[Webhook],
+    add_sink: Callable[..., int],
+) -> None:
+    add_sink(DiscordSink(webhook_url, rich=rich))
 
     try:
-        _: float = 1 / 0
-    except ZeroDivisionError as e:
-        logger.opt(exception=e).critical("Exception should not be forwarded to Discord")
+        raise ValueError("Invalid application value")
+    except ValueError:
+        logger.exception(TEST_MESSAGE)
 
-    logger.remove(handler_id)
+    assert len(deliveries) == 1
+    payload = deliveries[0]
+    body = payload.content
+    if rich:
+        assert isinstance(payload.components, list)
+        container = payload.components[0]
+        assert isinstance(container, Container)
+        text = container.components[1]
+        assert isinstance(text, TextDisplay)
+        body = text.content
+    assert isinstance(body, str)
+    assert TEST_MESSAGE in body
+    assert "Traceback (most recent call last):" in body
+    assert "ValueError: Invalid application value" in body
 
 
-def test_emit_intercept() -> None:
-    """
-    A test-case to validate the use of standard logging library interception
-    catches and forwards an event to Discord.
-    """
-    handler_id: int = logger.add(
-        DiscordSink(TESTS_WEBHOOK_URL, intercept=True), backtrace=False
-    )
+def test_emit_long(
+    webhook_url: str, deliveries: list[Webhook], add_sink: Callable[..., int]
+) -> None:
+    add_sink(DiscordSink(webhook_url))
+    message = TEST_MESSAGE * 100
+
+    logger.error(message)
+
+    assert len(deliveries) == 1
+    payload = deliveries[0]
+    assert payload.content is UNSET
+    assert len(payload._attachments) == 1
+    attachment = payload._attachments[0]
+    assert attachment.filename == "message.txt"
+    assert attachment.content == Markdown.code_block(message).encode()
+
+
+@pytest.mark.parametrize("rich", [False, True])
+def test_emit_suppressed(
+    rich: bool,
+    webhook_url: str,
+    deliveries: list[Webhook],
+    add_sink: Callable[..., int],
+) -> None:
+    add_sink(DiscordSink(webhook_url, rich=rich, suppress=[ZeroDivisionError]))
 
     try:
-        _: float = 1 / 0
-    except ZeroDivisionError as e:
-        logging.error(TEST_MESSAGE)
+        1 / 0
+    except ZeroDivisionError:
+        logger.exception("Suppressed record")
 
-    logger.remove(handler_id)
+    assert deliveries == []
+
+
+def test_emit_unsuppressed(
+    webhook_url: str, deliveries: list[Webhook], add_sink: Callable[..., int]
+) -> None:
+    add_sink(DiscordSink(webhook_url, suppress=[ZeroDivisionError]))
+
+    try:
+        raise ValueError(TEST_MESSAGE)
+    except ValueError:
+        logger.exception("Unsuppressed record")
+
+    assert len(deliveries) == 1
+    assert isinstance(deliveries[0].content, str)
+    assert TEST_MESSAGE in deliveries[0].content
+
+
+def test_emit_intercept(
+    webhook_url: str, deliveries: list[Webhook], add_sink: Callable[..., int]
+) -> None:
+    add_sink(DiscordSink(webhook_url, intercept=True))
+
+    logging.error(TEST_MESSAGE)
+
+    assert len(deliveries) == 1
+    assert deliveries[0].content == Markdown.code_block(TEST_MESSAGE)
+
+
+def test_execution_failure_propagates(
+    webhook_url: str, add_sink: Callable[..., int], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def fail(webhook: Webhook) -> None:
+        raise RuntimeError("Webhook execution failed")
+
+    monkeypatch.setattr(Webhook, "execute", fail)
+    add_sink(DiscordSink(webhook_url))
+
+    with pytest.raises(RuntimeError, match="Webhook execution failed"):
+        logger.info(TEST_MESSAGE)
