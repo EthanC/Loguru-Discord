@@ -58,25 +58,42 @@ def test_emit(
 
 
 @pytest.mark.parametrize(
-    ("level", "color"),
+    ("level", "color", "color_options"),
     [
-        ("CRITICAL", 0x000000),
-        ("ERROR", 0xD22D39),
-        ("WARNING", 0xCE9C5C),
-        ("SUCCESS", 0x43A25A),
-        ("INFO", 0xFFFFFF),
-        ("DEBUG", 0x5865F2),
-        ("TRACE", UNSET),
+        ("CRITICAL", 0x000000, {}),
+        ("ERROR", 0xD22D39, {}),
+        ("WARNING", 0xCE9C5C, {}),
+        ("SUCCESS", 0x43A25A, {}),
+        ("INFO", 0xFFFFFF, {}),
+        ("DEBUG", 0x5865F2, {}),
+        ("TRACE", UNSET, {}),
+        ("CRITICAL", 0x123456, {"critical_color": "123456"}),
+        ("ERROR", 0x000000, {"error_color": 0}),
+        ("WARNING", 0xABCDEF, {"warning_color": "ABCDEF"}),
+        ("SUCCESS", 0x012345, {"success_color": 0x012345}),
+        ("INFO", 0x6789AB, {"info_color": "6789AB"}),
+        ("DEBUG", 0xCDEF01, {"debug_color": 0xCDEF01}),
+        ("TRACE", 0x234567, {"trace_color": "234567"}),
+        ("CRITICAL", UNSET, {"critical_color": None}),
+        ("ERROR", UNSET, {"error_color": None}),
+        ("WARNING", UNSET, {"warning_color": None}),
+        ("SUCCESS", UNSET, {"success_color": None}),
+        ("INFO", UNSET, {"info_color": None}),
+        ("DEBUG", UNSET, {"debug_color": None}),
+        ("TRACE", UNSET, {"trace_color": None}),
+        ("INFO", 0xFFFFFF, {"error_color": "123456"}),
+        ("INFO", 0xFFFFFF, {"error_color": None}),
     ],
 )
 def test_rich_formatting(
     level: str,
     color: object,
+    color_options: dict[str, Any],
     webhook_url: str,
     deliveries: list[Webhook],
     add_sink: Callable[..., int],
 ) -> None:
-    add_sink(DiscordSink(webhook_url, rich=True), level="TRACE")
+    add_sink(DiscordSink(webhook_url, rich=True, **color_options), level="TRACE")
 
     logger.log(level, TEST_MESSAGE)
 

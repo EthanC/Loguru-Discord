@@ -55,9 +55,34 @@ All configuration is handled on `DiscordSink` via optional keyword arguments.
 | `username`            | String to use for the Webhook username.                              | `None` (Determined by Discord) |
 | `avatar_url`          | Image URL to use for the Webhook avatar.                             | `None` (Determined by Discord) |
 | `rich`                | Toggle whether to use Discord Components.                            | `False`                        |
+| `critical_color`      | CRITICAL accent color when `rich=True`.                              | `"000000"`                     |
+| `error_color`         | ERROR accent color when `rich=True`.                                 | `"D22D39"`                     |
+| `warning_color`       | WARNING accent color when `rich=True`.                               | `"CE9C5C"`                     |
+| `success_color`       | SUCCESS accent color when `rich=True`.                               | `"43A25A"`                     |
+| `info_color`          | INFO accent color when `rich=True`.                                  | `"FFFFFF"`                     |
+| `debug_color`         | DEBUG accent color when `rich=True`.                                 | `"5865F2"`                     |
+| `trace_color`         | TRACE accent color when `rich=True`.                                 | `None` (No accent color)        |
 | `intercept`           | Toggle whether to intercept standard library logging.                | `False`                        |
 | `intercept_level_map` | Map custom log levels to Loguru log levels.                          | `None`                         |
 | `suppress`            | List of Exception types to not forward to Discord.                   | `None`                         |
+
+### Accent colors
+
+Pass hexadecimal strings or integers to override individual log-level colors:
+
+```py
+logger.add(
+    DiscordSink(
+        "https://discord.com/api/webhooks/00000000/XXXXXXXX",
+        rich=True,
+        error_color="FF0000",
+        warning_color=0xFFAA00,
+        trace_color="808080",
+    )
+)
+```
+
+Every color argument accepts `None` to disable that level's accent color, for example `info_color=None`. Omitted arguments keep their defaults. TRACE has no accent color by default.
 
 ### Threads
 

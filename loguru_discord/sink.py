@@ -29,6 +29,13 @@ class DiscordSink(Handler):
         username: str | None = None,
         avatar_url: str | None = None,
         rich: bool = False,
+        critical_color: str | int | None = "000000",
+        error_color: str | int | None = "D22D39",
+        warning_color: str | int | None = "CE9C5C",
+        success_color: str | int | None = "43A25A",
+        info_color: str | int | None = "FFFFFF",
+        debug_color: str | int | None = "5865F2",
+        trace_color: str | int | None = None,
         intercept: bool = False,
         intercept_level_map: dict[str, str] | None = None,
         suppress: list[type[BaseException]] | None = None,
@@ -52,6 +59,27 @@ class DiscordSink(Handler):
             rich (bool): Toggle whether to use Discord Components.
                 Default is False.
 
+            critical_color (str | int | None): CRITICAL accent color when rich is True.
+                Hexadecimal string or integer; None disables the accent. Default is "000000".
+
+            error_color (str | int | None): ERROR accent color when rich is True.
+                Hexadecimal string or integer; None disables the accent. Default is "D22D39".
+
+            warning_color (str | int | None): WARNING accent color when rich is True.
+                Hexadecimal string or integer; None disables the accent. Default is "CE9C5C".
+
+            success_color (str | int | None): SUCCESS accent color when rich is True.
+                Hexadecimal string or integer; None disables the accent. Default is "43A25A".
+
+            info_color (str | int | None): INFO accent color when rich is True.
+                Hexadecimal string or integer; None disables the accent. Default is "FFFFFF".
+
+            debug_color (str | int | None): DEBUG accent color when rich is True.
+                Hexadecimal string or integer; None disables the accent. Default is "5865F2".
+
+            trace_color (str | int | None): TRACE accent color when rich is True.
+                Hexadecimal string or integer; None disables the accent. Default is None.
+
             intercept (bool): Toggle whether to intercept the standard logging library.
                 Default is False.
 
@@ -69,6 +97,13 @@ class DiscordSink(Handler):
         self.username: str | None = username
         self.avatar_url: str | None = avatar_url
         self.rich: bool = rich
+        self.critical_color: str | int | None = critical_color
+        self.error_color: str | int | None = error_color
+        self.warning_color: str | int | None = warning_color
+        self.success_color: str | int | None = success_color
+        self.info_color: str | int | None = info_color
+        self.debug_color: str | int | None = debug_color
+        self.trace_color: str | int | None = trace_color
         self.intercept: bool = intercept
         self.intercept_level_map: dict[str, str] | None = intercept_level_map
         self.suppress: list[type[BaseException]] | None = suppress
@@ -117,18 +152,20 @@ class DiscordSink(Handler):
             )
 
             match record.levelno:
-                case logging.CRITICAL:
-                    container.set_accent_color("000000")
-                case logging.ERROR:
-                    container.set_accent_color("D22D39")
-                case logging.WARNING:
-                    container.set_accent_color("CE9C5C")
-                case 25:  # Loguru SUCCESS
-                    container.set_accent_color("43A25A")
-                case logging.INFO:
-                    container.set_accent_color("FFFFFF")
-                case logging.DEBUG:
-                    container.set_accent_color("5865F2")
+                case logging.CRITICAL if self.critical_color is not None:
+                    container.set_accent_color(self.critical_color)
+                case logging.ERROR if self.error_color is not None:
+                    container.set_accent_color(self.error_color)
+                case logging.WARNING if self.warning_color is not None:
+                    container.set_accent_color(self.warning_color)
+                case 25 if self.success_color is not None:  # Loguru SUCCESS
+                    container.set_accent_color(self.success_color)
+                case logging.INFO if self.info_color is not None:
+                    container.set_accent_color(self.info_color)
+                case logging.DEBUG if self.debug_color is not None:
+                    container.set_accent_color(self.debug_color)
+                case 5 if self.trace_color is not None:  # Loguru TRACE
+                    container.set_accent_color(self.trace_color)
                 case _:
                     pass
 
