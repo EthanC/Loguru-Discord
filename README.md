@@ -60,7 +60,8 @@ All configuration is handled on `DiscordSink` via optional keyword arguments.
 | `webhook_url`         | Discord Webhook URL to forward log events to.                        | N/A (Required)                 |
 | `thread_id`           | Thread within the Webhook's channel to forward log events to.        | `None`                         |
 | `username`            | String to use for the Webhook username.                              | `None` (Determined by Discord) |
-| `avatar_url`          | Image URL to use for the Webhook avatar.                             | `None` (Determined by Discord) |
+| `avatar_url`          | Image URL overriding the avatar on each log message.                 | `None` (Webhook default)       |
+| `avatar`              | Default webhook avatar as a data URI, bytes, or `Path`; `None` clears it. | `msgspec.UNSET` (Unchanged) |
 | `rich`                | Use Discord Components V2 with a heading, colors, and timestamps.    | `False`                        |
 | `critical_color`      | CRITICAL accent color when `rich=True`.                              | `"000000"`                     |
 | `error_color`         | ERROR accent color when `rich=True`.                                 | `"D22D39"`                     |
@@ -72,6 +73,29 @@ All configuration is handled on `DiscordSink` via optional keyword arguments.
 | `intercept`           | Route standard-library logging through Loguru.                       | `False`                        |
 | `intercept_level_map` | Map custom log levels to Loguru log levels.                          | `None`                         |
 | `suppress`            | Exception types (including subclasses) whose records are skipped.   | `None`                         |
+
+### Avatars
+
+Use `avatar_url="https://example.com/avatar.png"` to override the avatar on each log message through Clyde's [`Webhook.set_avatar_url()`](https://clyde.e3n.im/webhook/#clyde.webhook.Webhook.set_avatar_url).
+
+To change the webhook's default avatar, pass `avatar`:
+
+```py
+from pathlib import Path
+
+from loguru import logger
+from loguru_discord import DiscordSink
+
+logger.add(
+    DiscordSink(
+        "https://discord.com/api/webhooks/00000000/XXXXXXXX", avatar=Path("avatar.png")
+    )
+)
+```
+
+`avatar` accepts an image data URI string, PNG/JPEG/GIF image bytes, or a `pathlib.Path` to an image file. Clyde's [`Webhook.modify()`](https://clyde.e3n.im/webhook/#clyde.webhook.Webhook.modify) handles file reading and encoding. Use `Path` for local files and `avatar_url` for hosted image URLs.
+
+Supplying `avatar` makes one HTTP request during sink initialization and changes the default avatar for all senders using that webhook. `avatar=None` clears the default; omitting it or passing `msgspec.UNSET` leaves the default unchanged without making this request. File, image-format, and HTTP errors propagate from initialization. If both options are supplied, `avatar_url` overrides the default on this sink's messages.
 
 ### Accent colors
 

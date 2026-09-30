@@ -57,7 +57,7 @@ except ZeroDivisionError:
 
 ![Discord log output with a level heading, colored container, and exception traceback](images/readme_example.png)
 
-`username` and `avatar_url` override the webhook's display identity. When omitted, Discord uses the webhook's configured username and avatar.
+`username` overrides the webhook's display name. When omitted, Discord uses the webhook's configured name.
 
 ### Accent colors
 
@@ -91,6 +91,53 @@ logger.warning("Disk space is low")
 | TRACE | `trace_color` | `None` |
 
 Colors apply only when `rich=True`. Omitted options retain their defaults.
+
+## Avatars
+
+`avatar_url` sets an image URL for each log message through Clyde's [`Webhook.set_avatar_url()`](https://clyde.e3n.im/webhook/#clyde.webhook.Webhook.set_avatar_url):
+
+```python
+from loguru import logger
+from loguru_discord import DiscordSink
+
+logger.add(
+    DiscordSink(
+        "https://discord.com/api/webhooks/00000000/XXXXXXXX",
+        avatar_url="https://example.com/avatar.png",
+    )
+)
+```
+
+`avatar` changes the webhook's default avatar through Clyde's [`Webhook.modify()`](https://clyde.e3n.im/webhook/#clyde.webhook.Webhook.modify). It accepts the same inputs as Clyde:
+
+| Input | Effect |
+| --- | --- |
+| Image data URI string | Sets the default avatar from the encoded image. |
+| PNG/JPEG/GIF image bytes | Clyde encodes the image and sets the default avatar. |
+| `pathlib.Path` | Clyde reads and encodes the image file, then sets the default avatar. |
+| `None` | Clears the default avatar. |
+| Omitted or `msgspec.UNSET` | Leaves the default avatar unchanged. |
+
+For a local image file:
+
+```python
+from pathlib import Path
+
+from loguru import logger
+from loguru_discord import DiscordSink
+
+logger.add(
+    DiscordSink(
+        "https://discord.com/api/webhooks/00000000/XXXXXXXX", avatar=Path("avatar.png")
+    )
+)
+```
+
+Use `Path` for local files and `avatar_url` for hosted image URLs. An `avatar` string must contain an image data URI, such as `data:image/png;base64,...`.
+
+Supplying `avatar` makes one HTTP request during initialization and changes the webhook's default avatar for **all senders using that webhook**. File, image-format, and HTTP errors propagate from initialization. Omitting `avatar` or passing `msgspec.UNSET` skips that request. Subsequent log records do not re-read or re-upload the image.
+
+Both options can be supplied together: `avatar` sets the default, and `avatar_url` overrides it on this sink's messages. With `avatar_url=None`, Discord uses the webhook's default avatar.
 
 ## Threads
 

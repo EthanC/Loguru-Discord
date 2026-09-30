@@ -4,12 +4,13 @@ import logging
 from copy import deepcopy
 from datetime import datetime
 from logging import Handler, LogRecord
+from pathlib import Path
 from typing import Final, Self
 
 from clyde import Markdown, Timestamp, Webhook
 from clyde.components import Container, Seperator, SeperatorSpacing, TextDisplay
 from clyde.webhook import MessageFlags
-from msgspec import UNSET
+from msgspec import UNSET, UnsetType
 
 from loguru_discord._delivery import delivery_active
 from loguru_discord.intercept import Intercept
@@ -39,6 +40,7 @@ class DiscordSink(Handler):
         thread_id: str | None = None,
         username: str | None = None,
         avatar_url: str | None = None,
+        avatar: UnsetType | None | str | bytes | Path = UNSET,
         rich: bool = False,
         critical_color: str | int | None = "000000",
         error_color: str | int | None = "D22D39",
@@ -64,8 +66,16 @@ class DiscordSink(Handler):
             username (str | None): String to use for the Webhook username.
                 Default is determined by Discord.
 
-            avatar_url (str | None): Image URL to use for the Webhook avatar.
-                Default is determined by Discord.
+            avatar_url (str | None): Image URL to override the avatar on each log
+                message. Takes precedence over the Webhook's default avatar.
+                None uses the default avatar. Default is None.
+
+            avatar (UnsetType | None | str | bytes | Path): Default Webhook avatar
+                as an image data URI, PNG/JPEG/GIF bytes, or pathlib.Path to an
+                image file. Passed to Clyde's Webhook.modify() once during
+                initialization, making an HTTP request that changes the Webhook
+                for all senders. None clears the default avatar; UNSET leaves
+                it unchanged. Default is UNSET.
 
             rich (bool): Use Discord Components V2 with a level heading,
                 accent color, and timestamps instead of a plain message.
@@ -114,6 +124,7 @@ class DiscordSink(Handler):
         self.thread_id: str | None = thread_id
         self.username: str | None = username
         self.avatar_url: str | None = avatar_url
+        self.avatar: UnsetType | None | str | bytes | Path = avatar
         self.rich: bool = rich
         self.critical_color: str | int | None = critical_color
         self.error_color: str | int | None = error_color
@@ -135,6 +146,13 @@ class DiscordSink(Handler):
 
         if self.avatar_url:
             self.webhook.set_avatar_url(self.avatar_url)
+
+        if self.avatar is not UNSET:
+            token = delivery_active.set(True)
+            try:
+                self.webhook.modify(avatar=self.avatar)
+            finally:
+                delivery_active.reset(token)
 
         if self.intercept:
             Intercept.setup(self.intercept_level_map)

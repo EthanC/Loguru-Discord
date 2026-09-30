@@ -1,12 +1,15 @@
 from logging import Handler, LogRecord
+from pathlib import Path
 
 from clyde import Webhook
+from msgspec import UNSET, UnsetType
 
 class DiscordSink(Handler):
     webhook_url: str
     thread_id: str | None
     username: str | None
     avatar_url: str | None
+    avatar: UnsetType | None | str | bytes | Path
     rich: bool
     critical_color: str | int | None
     error_color: str | int | None
@@ -27,6 +30,7 @@ class DiscordSink(Handler):
         thread_id: str | None = None,
         username: str | None = None,
         avatar_url: str | None = None,
+        avatar: UnsetType | None | str | bytes | Path = UNSET,
         rich: bool = False,
         critical_color: str | int | None = "000000",
         error_color: str | int | None = "D22D39",
