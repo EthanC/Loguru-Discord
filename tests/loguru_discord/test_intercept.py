@@ -31,6 +31,8 @@ def test_transport_logs_do_not_feed_back(
         cwd=Path(__file__).resolve().parents[2],
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         timeout=15,
     )
     assert result.returncode == 0, result.stdout + result.stderr
