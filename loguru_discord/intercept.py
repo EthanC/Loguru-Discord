@@ -7,6 +7,8 @@ from typing import Self
 
 from loguru import logger
 
+from loguru_discord._delivery import delivery_active
+
 
 class Intercept(Handler):
     """Handler to intercept logging messages and redirect to Loguru."""
@@ -21,6 +23,9 @@ class Intercept(Handler):
 
     def emit(self: Self, record: LogRecord):
         """Log emitter."""
+        if delivery_active.get():
+            return
+
         level: int | str = record.levelno
         frame: FrameType | None = logging.currentframe()
         depth: int = 2

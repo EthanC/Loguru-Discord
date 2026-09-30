@@ -9,6 +9,7 @@ from typing import Self
 from clyde import Markdown, Timestamp, Webhook
 from clyde.components import Container, Seperator, SeperatorSpacing, TextDisplay
 
+from loguru_discord._delivery import delivery_active
 from loguru_discord.intercept import Intercept
 
 
@@ -120,4 +121,8 @@ class DiscordSink(Handler):
         else:
             webhook.set_content(body, fallback=True)
 
-        webhook.execute()
+        token = delivery_active.set(True)
+        try:
+            webhook.execute()
+        finally:
+            delivery_active.reset(token)
