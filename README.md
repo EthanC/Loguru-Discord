@@ -1,9 +1,12 @@
 # Loguru-Discord
 
-![Python](https://img.shields.io/badge/Python-3-blue?logo=python&logoColor=white)
-![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/ethanc/loguru-discord/workflow.yaml)
-![PyPI Downloads](https://img.shields.io/pypi/dm/loguru-discord)
-[![Coverage Report](https://codecov.io/gh/ethanc/loguru-discord/branch/main/graph/badge.svg)](https://codecov.io/gh/ethanc/loguru-discord)
+<p align="center">
+  <a href="https://pypi.org/project/loguru-discord/"><img src="https://img.shields.io/pypi/v/loguru-discord" alt="PyPI version"></a>
+  <a href="https://pypi.org/project/loguru-discord/"><img src="https://img.shields.io/pypi/pyversions/loguru-discord" alt="Supported Python versions"></a>
+  <a href="https://github.com/EthanC/Loguru-Discord/actions/workflows/workflow.yaml"><img src="https://img.shields.io/github/actions/workflow/status/ethanc/loguru-discord/workflow.yaml" alt="Build status"></a>
+  <a href="https://codecov.io/gh/ethanc/loguru-discord"><img src="https://codecov.io/gh/ethanc/loguru-discord/branch/main/graph/badge.svg" alt="Coverage report"></a>
+  <a href="https://pypi.org/project/loguru-discord/"><img src="https://img.shields.io/pypi/dm/loguru-discord" alt="PyPI downloads"></a>
+</p>
 
 Loguru-Discord is a lightweight sink for [Loguru](https://github.com/Delgan/loguru) that forwards logs to [Discord](https://discord.com/) via the Webhook API.
 
