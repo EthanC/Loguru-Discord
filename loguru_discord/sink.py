@@ -14,6 +14,7 @@ from msgspec import UNSET
 from loguru_discord._delivery import delivery_active
 from loguru_discord.intercept import Intercept
 
+_PLAIN_TEXT_LIMIT: Final[int] = 2000
 _RICH_TEXT_LIMIT: Final[int] = 4000
 
 
@@ -87,7 +88,8 @@ class DiscordSink(Handler):
             if isinstance(record.exc_info[1], tuple(self.suppress)):
                 return
 
-        body: str = Markdown.code_block(record.getMessage())
+        message: str = record.getMessage()
+        body: str = Markdown.code_block(message)
         webhook: Webhook = deepcopy(self.webhook)
 
         if self.rich:
@@ -127,9 +129,11 @@ class DiscordSink(Handler):
                 webhook.components = UNSET
                 webhook.set_flag(MessageFlags.IS_COMPONENTS_V2, None)
                 webhook._set_with_components(None)
-                webhook.set_content(body, fallback=True)
+                webhook.add_attachment("message.txt", message.encode())
+        elif len(body) > _PLAIN_TEXT_LIMIT:
+            webhook.add_attachment("message.txt", message.encode())
         else:
-            webhook.set_content(body, fallback=True)
+            webhook.set_content(body)
 
         token = delivery_active.set(True)
         try:

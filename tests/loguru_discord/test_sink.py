@@ -140,7 +140,7 @@ def test_emit_long(
     assert len(payload._attachments) == 1
     attachment = payload._attachments[0]
     assert attachment.filename == "message.txt"
-    assert attachment.content == Markdown.code_block(message).encode()
+    assert attachment.content == message.encode()
 
 
 @pytest.mark.parametrize("rich", [False, True])
@@ -240,7 +240,7 @@ def test_plain_short_long_short_payloads(
     assert first._attachments == []
     assert long.content is UNSET
     assert len(long._attachments) == 1
-    assert long._attachments[0].content == Markdown.code_block(messages[1]).encode()
+    assert long._attachments[0].content == messages[1].encode()
     assert last.content == Markdown.code_block(messages[2])
     assert last._attachments == []
     assert sink.webhook.content is UNSET
@@ -325,7 +325,7 @@ def test_rich_text_budget(
         assert "with_components" not in payload._query_params
         assert len(payload._attachments) == 1
         assert payload._attachments[0].filename == "message.txt"
-        assert payload._attachments[0].content == Markdown.code_block(message).encode()
+        assert payload._attachments[0].content == message.encode()
 
 
 def test_rich_short_oversized_short_payloads(
@@ -358,9 +358,7 @@ def test_rich_short_oversized_short_payloads(
     assert oversized.content is UNSET
     assert not oversized.get_flag(MessageFlags.IS_COMPONENTS_V2)
     assert len(oversized._attachments) == 1
-    assert (
-        oversized._attachments[0].content == Markdown.code_block(messages[1]).encode()
-    )
+    assert oversized._attachments[0].content == messages[1].encode()
     for payload in deliveries:
         assert payload.username == "Custom Username"
         assert payload.avatar_url == AVATAR_URL
@@ -396,7 +394,7 @@ def test_oversized_traceback_preserves_formatted_record(
     assert "with_components" not in payload._query_params
     assert len(payload._attachments) == 1
     content = payload._attachments[0].content
-    assert content == Markdown.code_block(formatted[0]).encode()
+    assert content == formatted[0].encode()
     assert isinstance(content, bytes)
     assert b"ERROR | Application failure" in content
     assert b"Traceback (most recent call last):" in content
