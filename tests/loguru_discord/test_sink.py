@@ -2,7 +2,9 @@ import logging
 from collections.abc import Callable
 from copy import deepcopy
 from datetime import datetime, timezone
+from typing import Any
 from unittest.mock import Mock
+from urllib.parse import parse_qs, urlsplit
 
 import pytest
 from clyde import Markdown, Timestamp, Webhook
@@ -10,6 +12,7 @@ from clyde.components import Container, Seperator, TextDisplay
 from clyde.webhook import AllowedMentions, MessageFlags
 from loguru import logger
 from msgspec import UNSET
+from niquests import PreparedRequest, Response, Session
 
 from loguru_discord import DiscordSink
 from loguru_discord._delivery import delivery_active
@@ -342,6 +345,74 @@ def test_payload_preserves_webhook_configuration(
         assert payload._query_params["thread_id"] == "456"
         assert payload.get_flag(MessageFlags.IS_COMPONENTS_V2) is rich
     assert sink.webhook == template
+
+
+@pytest.mark.parametrize("rich", [False, True])
+@pytest.mark.parametrize("thread_id", [None, "987654321098765432"])
+@pytest.mark.parametrize(
+    "query",
+    [
+        "",
+        "wait=true",
+        "thread_id=123456789012345678",
+        "wait=true&thread_id=123456789012345678",
+        "thread_id=123456789012345678&wait=true",
+        "thread_id=123456789012345678&wait=true&with_components=true",
+    ],
+)
+def test_emit_preserves_thread_id(
+    rich: bool,
+    thread_id: str | None,
+    query: str,
+    webhook_url: str,
+    add_sink: Callable[..., int],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    requests: list[PreparedRequest] = []
+
+    def transport(
+        session: Session, request: PreparedRequest, **options: Any
+    ) -> Response:
+        requests.append(request)
+        response = Response()
+        response.status_code = 204
+        response._content = b""
+        response.request = request
+        response.url = request.url
+        return response
+
+    monkeypatch.setattr("clyde.webhook.Session.send", transport)
+    url = f"{webhook_url}?{query}" if query else webhook_url
+    sink = DiscordSink(url, thread_id=thread_id, rich=rich)
+    add_sink(sink)
+    messages = ["First short record", "x" * 5000, "Last short record"]
+
+    for message in messages:
+        logger.info(message)
+
+    assert len(requests) == len(messages)
+    for index, request in enumerate(requests):
+        assert request.method == "POST"
+        assert isinstance(request.url, str)
+        assert request.url.split("?")[0] == webhook_url
+        expected_params = parse_qs(query)
+        if thread_id is not None:
+            expected_params["thread_id"] = [thread_id]
+        if rich:
+            if index == 1:
+                expected_params.pop("with_components", None)
+            else:
+                expected_params["with_components"] = ["True"]
+        assert parse_qs(urlsplit(request.url).query) == expected_params
+        assert request.headers is not None
+        content_type = request.headers["Content-Type"]
+        assert isinstance(content_type, str)
+        expected_content_type = (
+            "multipart/form-data" if index == 1 else "application/json"
+        )
+        assert content_type.split(";")[0] == expected_content_type
+    assert sink.thread_id == thread_id
+    assert sink.webhook.url == url
 
 
 @pytest.mark.parametrize("level", ["INFO", "CRITICAL"])

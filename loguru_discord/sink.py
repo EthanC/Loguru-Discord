@@ -25,6 +25,7 @@ class DiscordSink(Handler):
         self: Self,
         webhook_url: str,
         *,
+        thread_id: str | None = None,
         username: str | None = None,
         avatar_url: str | None = None,
         rich: bool = False,
@@ -37,6 +38,10 @@ class DiscordSink(Handler):
 
         Arguments:
             webhook_url (str): Discord Webhook to forward log events to.
+
+            thread_id (str | None): Thread within the Webhook's channel to forward log events to.
+                Overrides the thread_id query parameter in the Webhook URL.
+                Default is None.
 
             username (str | None): String to use for the Webhook username.
                 Default is determined by Discord.
@@ -60,6 +65,7 @@ class DiscordSink(Handler):
 
         self.webhook_url: str = webhook_url
 
+        self.thread_id: str | None = thread_id
         self.username: str | None = username
         self.avatar_url: str | None = avatar_url
         self.rich: bool = rich
@@ -67,6 +73,9 @@ class DiscordSink(Handler):
         self.intercept_level_map: dict[str, str] | None = intercept_level_map
         self.suppress: list[type[BaseException]] | None = suppress
         self.webhook: Webhook = Webhook(url=self.webhook_url)
+
+        if self.thread_id is not None:
+            self.webhook.set_thread_id(self.thread_id)
 
         if self.username:
             self.webhook.set_username(self.username)

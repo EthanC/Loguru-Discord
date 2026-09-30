@@ -51,12 +51,28 @@ All configuration is handled on `DiscordSink` via optional keyword arguments.
 | **Argument**          | **Description**                                                      | **Default**                    |
 |-----------------------|----------------------------------------------------------------------|--------------------------------|
 | `webhook_url`         | Discord Webhook URL to forward log events to.                        | N/A (Required)                 |
+| `thread_id`           | Thread within the Webhook's channel to forward log events to.        | `None`                         |
 | `username`            | String to use for the Webhook username.                              | `None` (Determined by Discord) |
 | `avatar_url`          | Image URL to use for the Webhook avatar.                             | `None` (Determined by Discord) |
 | `rich`                | Toggle whether to use Discord Components.                            | `False`                        |
 | `intercept`           | Toggle whether to intercept standard library logging.                | `False`                        |
 | `intercept_level_map` | Map custom log levels to Loguru log levels.                          | `None`                         |
 | `suppress`            | List of Exception types to not forward to Discord.                   | `None`                         |
+
+### Threads
+
+Pass `thread_id` to send logs to an existing thread within the Webhook's channel:
+
+```py
+logger.add(
+    DiscordSink(
+        "https://discord.com/api/webhooks/00000000/XXXXXXXX",
+        thread_id="123456789012345678",
+    )
+)
+```
+
+A supplied `thread_id` takes precedence over a `thread_id` query parameter in the Webhook URL. When the argument is `None`, any `thread_id` query parameter in the URL is used. See Discord's [Execute Webhook documentation](https://docs.discord.com/developers/resources/webhook#execute-webhook) for thread requirements.
 
 ### Long messages
 

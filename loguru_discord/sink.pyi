@@ -4,6 +4,7 @@ from clyde import Webhook
 
 class DiscordSink(Handler):
     webhook_url: str
+    thread_id: str | None
     username: str | None
     avatar_url: str | None
     rich: bool
@@ -16,6 +17,7 @@ class DiscordSink(Handler):
         self,
         webhook_url: str,
         *,
+        thread_id: str | None = None,
         username: str | None = None,
         avatar_url: str | None = None,
         rich: bool = False,
