@@ -1,4 +1,4 @@
-# Loguru-Discord
+<h1 align="center">Loguru-Discord</h1>
 
 <p align="center">
   <a href="https://pypi.org/project/loguru-discord/"><img src="https://img.shields.io/pypi/v/loguru-discord" alt="PyPI version"></a>
@@ -8,9 +8,9 @@
   <a href="https://pypi.org/project/loguru-discord/"><img src="https://img.shields.io/pypi/dm/loguru-discord" alt="PyPI downloads"></a>
 </p>
 
-Loguru-Discord is a lightweight sink for [Loguru](https://github.com/Delgan/loguru) that forwards logs to [Discord](https://discord.com/) via the Webhook API.
+<p align="center"><strong>Forward Loguru logs to Discord webhooks.</strong></p>
 
-[Documentation](https://loguru-discord.e3n.im/) includes examples and the [DiscordSink](https://loguru-discord.e3n.im/sink/) and [Intercept](https://loguru-discord.e3n.im/intercept/) API references.
+Loguru-Discord is a lightweight sink for [Loguru](https://github.com/Delgan/loguru) that forwards logs to [Discord](https://discord.com/) via the Webhook API.
 
 ## Features
 
@@ -31,120 +31,19 @@ Loguru-Discord is a lightweight sink for [Loguru](https://github.com/Delgan/logu
 
 Install with [uv](https://github.com/astral-sh/uv) (recommended):
 
-```console
+```bash
 uv add loguru-discord
 ```
 
 Alternatively, install with pip:
 
-```console
+```bash
 pip install loguru-discord
 ```
 
-### Handler
+### Quick Start
 
 Replace the placeholder with your Discord webhook URL:
-
-```py
-from loguru import logger
-from loguru_discord import DiscordSink
-
-logger.add(DiscordSink("https://discord.com/api/webhooks/00000000/XXXXXXXX"))
-logger.info("Application started")
-```
-
-All configuration is handled on `DiscordSink` via optional keyword arguments.
-
-| **Argument**          | **Description**                                                      | **Default**                    |
-|-----------------------|----------------------------------------------------------------------|--------------------------------|
-| `webhook_url`         | Discord Webhook URL to forward log events to.                        | N/A (Required)                 |
-| `thread_id`           | Thread within the Webhook's channel to forward log events to.        | `None`                         |
-| `username`            | String to use for the Webhook username.                              | `None` (Determined by Discord) |
-| `avatar_url`          | Image URL overriding the avatar on each log message.                 | `None` (Webhook default)       |
-| `avatar`              | Default webhook avatar as a data URI, bytes, or `Path`; `None` clears it. | `msgspec.UNSET` (Unchanged) |
-| `rich`                | Use Discord Components V2 with a heading, colors, and timestamps.    | `False`                        |
-| `critical_color`      | CRITICAL accent color when `rich=True`.                              | `"000000"`                     |
-| `error_color`         | ERROR accent color when `rich=True`.                                 | `"D22D39"`                     |
-| `warning_color`       | WARNING accent color when `rich=True`.                               | `"CE9C5C"`                     |
-| `success_color`       | SUCCESS accent color when `rich=True`.                               | `"43A25A"`                     |
-| `info_color`          | INFO accent color when `rich=True`.                                  | `"FFFFFF"`                     |
-| `debug_color`         | DEBUG accent color when `rich=True`.                                 | `"5865F2"`                     |
-| `trace_color`         | TRACE accent color when `rich=True`.                                 | `None` (No accent color)        |
-| `intercept`           | Route standard-library logging through Loguru.                       | `False`                        |
-| `intercept_level_map` | Map custom log levels to Loguru log levels.                          | `None`                         |
-| `suppress`            | Exception types (including subclasses) whose records are skipped.   | `None`                         |
-
-### Avatars
-
-Use `avatar_url="https://example.com/avatar.png"` to override the avatar on each log message through Clyde's [`Webhook.set_avatar_url()`](https://clyde.e3n.im/webhook/#clyde.webhook.Webhook.set_avatar_url).
-
-To change the webhook's default avatar, pass `avatar`:
-
-```py
-from pathlib import Path
-
-from loguru import logger
-from loguru_discord import DiscordSink
-
-logger.add(
-    DiscordSink(
-        "https://discord.com/api/webhooks/00000000/XXXXXXXX", avatar=Path("avatar.png")
-    )
-)
-```
-
-`avatar` accepts an image data URI string, PNG/JPEG/GIF image bytes, or a `pathlib.Path` to an image file. Clyde's [`Webhook.modify()`](https://clyde.e3n.im/webhook/#clyde.webhook.Webhook.modify) handles file reading and encoding. Use `Path` for local files and `avatar_url` for hosted image URLs.
-
-Supplying `avatar` makes one HTTP request during sink initialization and changes the default avatar for all senders using that webhook. `avatar=None` clears the default; omitting it or passing `msgspec.UNSET` leaves the default unchanged without making this request. File, image-format, and HTTP errors propagate from initialization. If both options are supplied, `avatar_url` overrides the default on this sink's messages.
-
-### Accent colors
-
-Pass hexadecimal strings or integers to override individual log-level colors:
-
-```py
-logger.add(
-    DiscordSink(
-        "https://discord.com/api/webhooks/00000000/XXXXXXXX",
-        rich=True,
-        error_color="FF0000",
-        warning_color=0xFFAA00,
-        trace_color="808080",
-    )
-)
-```
-
-Every color argument accepts `None` to disable that level's accent color, for example `info_color=None`. Omitted arguments keep their defaults. TRACE has no accent color by default.
-
-### Threads
-
-Pass `thread_id` to send logs to an existing thread within the Webhook's channel:
-
-```py
-logger.add(
-    DiscordSink(
-        "https://discord.com/api/webhooks/00000000/XXXXXXXX",
-        thread_id="123456789012345678",
-    )
-)
-```
-
-A supplied `thread_id` takes precedence over a `thread_id` query parameter in the Webhook URL. When the argument is `None`, any `thread_id` query parameter in the URL is used. See Discord's [Execute Webhook documentation](https://docs.discord.com/developers/resources/webhook#execute-webhook) for thread requirements.
-
-### Long messages
-
-Plain output that exceeds Discord's 2,000-character content limit, including Markdown code-block fences, is sent as a `message.txt` attachment. With `rich=True`, the sink uses the same attachment fallback when the body, level heading, and timestamps exceed the 4,000-character Components V2 text limit, including Markdown formatting.
-
-The attachment contains the complete formatted log record, including any traceback, encoded as UTF-8 without Markdown code-block fences. Oversized rich records use a plain webhook payload without Components V2 flags. Subsequent records that fit the limit retain rich formatting.
-
-### Standard-library logging
-
-Set `intercept=True` on `DiscordSink`, or call `Intercept.setup()` separately, to send standard-library logging records through Loguru. Setup replaces and closes existing root logging handlers and sets the root logging level to `0`. Named loggers retain their own levels and handlers and must propagate to the root logger to reach the interceptor.
-
-See the [logging interception example](https://loguru-discord.e3n.im/#standard-library-logging) for custom level mapping and setup details.
-
-### Example
-
-This example uses rich output, as shown in the preview:
 
 ```py
 from loguru import logger
@@ -164,6 +63,10 @@ try:
 except Exception as e:
     logger.opt(exception=e).error("Calculation failed")
 ```
+
+## Documentation
+
+See the [documentation](https://loguru-discord.e3n.im/) for more examples and configuration options.
 
 ## Releases
 
