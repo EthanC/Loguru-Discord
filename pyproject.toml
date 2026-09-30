@@ -88,6 +88,6 @@ env_list = [
 
 [tool.tox.env_run_base]
 description = "Run test under {base_python}"
-commands = [["pytest"]]
-allowlist_externals = ["pytest"]
-set_env = { TESTS_WEBHOOK_URL = "{env:TESTS_WEBHOOK_URL}" }
+runner = "uv-venv-lock-runner"
+dependency_groups = ["dev"]
+commands = [["python", "-m", "pytest"]]

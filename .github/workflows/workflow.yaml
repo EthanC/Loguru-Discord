@@ -19,15 +19,13 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v7
       - name: Install Python
-        run: uv python install
+        run: uv python install 3.11 3.12 3.13 3.14
       - name: Install Dependencies
         run: uv sync --dev
       - name: Run ruff
         run: uv run ruff check .
       - name: Run pytest
-        run: uv run pytest --cov --cov-branch --cov-report=xml
-        env:
-          TESTS_WEBHOOK_URL: ${{ secrets.TESTS_WEBHOOK_URL }}
+        run: uv run python -m pytest --cov=loguru_discord --cov-branch --cov-report=xml
       - name: Upload Coverage Report
         uses: codecov/codecov-action@v5
         with:
@@ -37,7 +35,5 @@ jobs:
         run: uv tool install tox --with tox-uv
       - name: Run tox
         run: uv run tox
-        env:
-          TESTS_WEBHOOK_URL: ${{ secrets.TESTS_WEBHOOK_URL }}
       - name: Build Package
         run: uv build
