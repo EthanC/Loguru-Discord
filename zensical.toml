@@ -9,6 +9,8 @@ extra_css = ["stylesheets/extra.css"]
 nav = [
     { "Home" = "index.md" },
     { "DiscordSink" = "sink.md" },
+    { "AsyncDiscordSink" = "async_sink.md" },
+    { "Transport limits" = "transport.md" },
     { "Intercept" = "intercept.md" },
 ]
 

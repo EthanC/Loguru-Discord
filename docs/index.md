@@ -1,6 +1,6 @@
 # Loguru-Discord
 
-Loguru-Discord forwards [Loguru](https://github.com/Delgan/loguru) logs to [Discord](https://discord.com/) through the Webhook API. It supports plain messages, rich Components V2 output, custom usernames and avatars, thread targeting, and exception suppression. Webhook requests are handled by [Clyde](https://clyde.e3n.im/).
+Loguru-Discord forwards [Loguru](https://github.com/Delgan/loguru) logs to [Discord](https://discord.com/) through the Webhook API. Choose `DiscordSink` for synchronous delivery or `AsyncDiscordSink` for bounded, native async delivery. Both support plain messages, rich Components V2 output, custom usernames and avatars, thread targeting, and exception suppression.
 
 ## Installation
 
@@ -32,7 +32,35 @@ logger.info("Application started")
 
 The default output is a plain message containing the formatted log record in a Markdown code block. Loguru's existing console sink stays active. Each record is sent synchronously; pass `enqueue=True` to `logger.add()` if you want Loguru to queue delivery in a background thread.
 
-All webhook options are keyword arguments on [DiscordSink](sink.md).
+All webhook options are keyword arguments on [DiscordSink](sink.md) and [AsyncDiscordSink](async_sink.md).
+
+## Async quickstart
+
+Use an async context manager to initialize and close the sink on one event loop:
+
+```python
+from loguru import logger
+from loguru_discord import AsyncDiscordSink
+
+
+async def main():
+    async with AsyncDiscordSink(
+        "https://discord.com/api/webhooks/00000000/XXXXXXXX", rich=True
+    ) as sink:
+        handler_id = logger.add(sink, enqueue=False)
+        try:
+            logger.info("Application started")
+            # Await application work here.
+            await logger.complete()
+        finally:
+            logger.remove(handler_id)
+```
+
+`enqueue=False` lets the sink's bounded buffer control admission. Logging returns without waiting for HTTP, retry sleeps, or buffer capacity. The sink accepts up to 1,000 pending records and 16 MiB of UTF-8 text by default, including the active delivery. It drops the newest record at either limit and reports aggregated overflow notifications. Read `sink.statistics` for delivery counters, or supply an out-of-band `on_error` callback. See [async lifecycle and overflow handling](async_sink.md).
+
+The non-blocking delivery guarantee applies to `AsyncDiscordSink`. Other handlers on the same logger must also be configured for the application's latency requirements. Loguru's `enqueue=True` remains available for `DiscordSink`; its pipe-backed queue can block producers under backpressure, and its completion and removal wait for the queue worker.
+
+Both sinks have finite default connection/read timeouts, retry limits, and delivery budgets. See [transport limits](transport.md) for configuration and synchronous versus async timeout semantics.
 
 ## Rich output
 
@@ -137,6 +165,8 @@ Use `Path` for local files and `avatar_url` for hosted image URLs. An `avatar` s
 
 Supplying `avatar` makes one HTTP request during initialization and changes the webhook's default avatar for **all senders using that webhook**. File, image-format, and HTTP errors propagate from initialization. Omitting `avatar` or passing `msgspec.UNSET` skips that request. Subsequent log records do not re-read or re-upload the image.
 
+For `AsyncDiscordSink`, initialization happens during `await sink.start()` or context entry. Clyde's `modify_async()` reads and encodes `Path` and bytes avatars in a worker thread, while HTTP uses native async transport. The constructor performs neither operation. Startup cancellation or failure closes the sink and propagates to the caller.
+
 Both options can be supplied together: `avatar` sets the default, and `avatar_url` overrides it on this sink's messages. With `avatar_url=None`, Discord uses the webhook's default avatar.
 
 ## Threads
@@ -219,6 +249,8 @@ To configure interception separately from a Discord sink, call `Intercept.setup(
 ## API reference
 
 - [DiscordSink](sink.md): constructor options and webhook delivery.
+- [AsyncDiscordSink](async_sink.md): bounded admission, initialization, draining, and shutdown.
+- [Transport limits](transport.md): request policy defaults, exceptions, and cancellation.
 - [Intercept](intercept.md): level mapping and standard-library logging setup.
 
 ## Releases and contributing

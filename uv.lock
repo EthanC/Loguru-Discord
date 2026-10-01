@@ -297,15 +297,15 @@ wheels = [
 
 [[package]]
 name = "discord-clyde"
-version = "1.1.0"
+version = "1.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "msgspec" },
     { name = "niquests" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/24/d9/05e8a432bf921f2e2ad9c388a5f101b1675c5974fb1231ca2a675ae5624f/discord_clyde-1.1.0.tar.gz", hash = "sha256:0b875a88c8675791b3deb3516c1b765d8db7686ea2b79f1e50383ca876532aee", size = 7906980, upload-time = "2026-09-05T04:46:13.756Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e6/61/b808c0eaa8789fe60f012df7abbd0d811936ecf0403373e01c28039576ed/discord_clyde-1.2.0.tar.gz", hash = "sha256:892ba2627efbd1a1689981528fa0b08f895e4c19132eeb8541040fca65a47281", size = 7922773, upload-time = "2026-10-01T00:15:42.956Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/0c/40/852f653191fad76a673c819328e83c8106f517c7e59a5b3cd482d7e6985b/discord_clyde-1.1.0-py3-none-any.whl", hash = "sha256:ce87bf77bc525aa70a104cec1709f2c49e631ba0fc548af56d92012394076d48", size = 53315, upload-time = "2026-09-05T04:46:12.485Z" },
+    { url = "https://files.pythonhosted.org/packages/b7/38/e869e019d00297368c3273283663d728d3421e20edaca95e459b925f4760/discord_clyde-1.2.0-py3-none-any.whl", hash = "sha256:074a3dd916b97aaf98a374fe4eb71fd6afdb580587673cc47042439491ad68c7", size = 56184, upload-time = "2026-10-01T00:15:41.427Z" },
 ]
 
 [[package]]
@@ -488,7 +488,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "discord-clyde", specifier = ">=1.1.0" },
+    { name = "discord-clyde", specifier = ">=1.2.0" },
     { name = "loguru", specifier = ">=0.7.3" },
 ]
 

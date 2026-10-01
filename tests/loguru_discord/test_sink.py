@@ -240,7 +240,7 @@ def test_emit_intercept(
 def test_execution_failure_propagates(
     webhook_url: str, add_sink: Callable[..., int], monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    def fail(webhook: Webhook) -> None:
+    def fail(webhook: Webhook, **options: Any) -> None:
         raise RuntimeError("Webhook execution failed")
 
     monkeypatch.setattr(Webhook, "execute", fail)
@@ -260,7 +260,7 @@ def test_delivery_restores_previous_context(
 ) -> None:
     guard_states: list[bool] = []
 
-    def execute(webhook: Webhook) -> None:
+    def execute(webhook: Webhook, **options: Any) -> None:
         guard_states.append(delivery_active.get())
         if failure:
             raise RuntimeError("Webhook execution failed")
@@ -565,7 +565,7 @@ def test_failed_payload_does_not_contaminate_next_record(
 ) -> None:
     attempts: list[Webhook] = []
 
-    def execute(webhook: Webhook) -> None:
+    def execute(webhook: Webhook, **options: Any) -> None:
         attempts.append(deepcopy(webhook))
         if len(attempts) == 1:
             webhook.set_username("Failed payload")

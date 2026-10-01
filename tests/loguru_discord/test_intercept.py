@@ -1,3 +1,4 @@
+import asyncio
 import inspect
 import logging
 import subprocess
@@ -193,3 +194,25 @@ def test_level_mapping_preserves_original_record(
     assert forwarded[0]["level"].no == expected_no
     assert observed == [original]
     assert record.__dict__ == original
+
+
+@pytest.mark.parametrize("mode", ["sync", "queued", "eager"])
+def test_lock_order_deadlocks(mode: str, webhook_url: str) -> None:
+    if mode == "eager" and not hasattr(asyncio, "eager_task_factory"):
+        pytest.skip("Eager task factories require Python 3.12 or later")
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "tests.loguru_discord.deadlock_probe",
+            mode,
+            webhook_url,
+        ],
+        cwd=Path(__file__).resolve().parents[2],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=15,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr

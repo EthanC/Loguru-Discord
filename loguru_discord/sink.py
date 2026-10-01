@@ -1,25 +1,19 @@
 """Send Loguru records to Discord webhooks."""
 
-import logging
-from copy import deepcopy
 from datetime import datetime
 from logging import Handler, LogRecord
 from pathlib import Path
-from typing import Final, Self
+from typing import Self
 
-from clyde import Markdown, Timestamp, Webhook
-from clyde.components import Container, Seperator, SeperatorSpacing, TextDisplay
-from clyde.webhook import MessageFlags
+from clyde import RequestPolicy
 from msgspec import UNSET, UnsetType
 
 from loguru_discord._delivery import delivery_active
+from loguru_discord._payload import DeliveryRecord, PayloadConfig
 from loguru_discord.intercept import Intercept
 
-_PLAIN_TEXT_LIMIT: Final[int] = 2000
-_RICH_TEXT_LIMIT: Final[int] = 4000
 
-
-class DiscordSink(Handler):
+class DiscordSink(PayloadConfig, Handler):
     """Forward Loguru records to a Discord webhook.
 
     Add an instance to Loguru with ``logger.add(sink)``. Records are sent
@@ -52,6 +46,7 @@ class DiscordSink(Handler):
         intercept: bool = False,
         intercept_level_map: dict[str, str] | None = None,
         suppress: list[type[BaseException]] | None = None,
+        request_policy: RequestPolicy | None = None,
     ) -> None:
         """
         Initialize a Discord webhook sink.
@@ -116,41 +111,39 @@ class DiscordSink(Handler):
                 records are skipped by this sink, including subclasses. Only
                 records with exception information are checked; other Loguru
                 sinks are unaffected. Default is None.
+
+            request_policy (RequestPolicy | None): Clyde transport limits for
+                delivery and avatar modification. None selects five-second
+                connection and ten-second read timeouts, three rate-limit retries,
+                and a 30-second transport budget.
         """
-        super().__init__()
-
-        self.webhook_url: str = webhook_url
-
-        self.thread_id: str | None = thread_id
-        self.username: str | None = username
-        self.avatar_url: str | None = avatar_url
-        self.avatar: UnsetType | None | str | bytes | Path = avatar
-        self.rich: bool = rich
-        self.critical_color: str | int | None = critical_color
-        self.error_color: str | int | None = error_color
-        self.warning_color: str | int | None = warning_color
-        self.success_color: str | int | None = success_color
-        self.info_color: str | int | None = info_color
-        self.debug_color: str | int | None = debug_color
-        self.trace_color: str | int | None = trace_color
-        self.intercept: bool = intercept
-        self.intercept_level_map: dict[str, str] | None = intercept_level_map
-        self.suppress: list[type[BaseException]] | None = suppress
-        self.webhook: Webhook = Webhook(url=self.webhook_url)
-
-        if self.thread_id is not None:
-            self.webhook.set_thread_id(self.thread_id)
-
-        if self.username:
-            self.webhook.set_username(self.username)
-
-        if self.avatar_url:
-            self.webhook.set_avatar_url(self.avatar_url)
+        Handler.__init__(self)
+        super().__init__(
+            webhook_url,
+            thread_id=thread_id,
+            username=username,
+            avatar_url=avatar_url,
+            avatar=avatar,
+            rich=rich,
+            critical_color=critical_color,
+            error_color=error_color,
+            warning_color=warning_color,
+            success_color=success_color,
+            info_color=info_color,
+            debug_color=debug_color,
+            trace_color=trace_color,
+            intercept=intercept,
+            intercept_level_map=intercept_level_map,
+            suppress=suppress,
+            request_policy=request_policy,
+        )
 
         if self.avatar is not UNSET:
             token = delivery_active.set(True)
             try:
-                self.webhook.modify(avatar=self.avatar)
+                self.webhook.modify(
+                    avatar=self.avatar, request_policy=self.request_policy
+                )
             finally:
                 delivery_active.reset(token)
 
@@ -169,61 +162,16 @@ class DiscordSink(Handler):
         Args:
             record (LogRecord): Record formatted by Loguru for webhook delivery.
         """
-        if self.suppress and record.exc_info:
-            if isinstance(record.exc_info[1], tuple(self.suppress)):
-                return
-
-        message: str = record.getMessage()
-        body: str = Markdown.code_block(message)
-        webhook: Webhook = deepcopy(self.webhook)
-
-        if self.rich:
-            timestamp: datetime = datetime.now()
-            heading: str = Markdown.header_3(record.levelname)
-            footer: str = Markdown.subtext(
-                f"{Timestamp.long_date_time(timestamp)} ({Timestamp.relative_time(timestamp)})"
+        if self._suppressed(record.exc_info[1] if record.exc_info else None):
+            return
+        webhook = self._payload(
+            DeliveryRecord(
+                record.getMessage(), record.levelname, record.levelno, datetime.now()
             )
-            container: Container = Container(
-                components=[
-                    TextDisplay(content=heading),
-                    TextDisplay(content=body),
-                    Seperator(divider=True, spacing=SeperatorSpacing.SMALL),
-                    TextDisplay(content=footer),
-                ]
-            )
-
-            match record.levelno:
-                case logging.CRITICAL if self.critical_color is not None:
-                    container.set_accent_color(self.critical_color)
-                case logging.ERROR if self.error_color is not None:
-                    container.set_accent_color(self.error_color)
-                case logging.WARNING if self.warning_color is not None:
-                    container.set_accent_color(self.warning_color)
-                case 25 if self.success_color is not None:  # Loguru SUCCESS
-                    container.set_accent_color(self.success_color)
-                case logging.INFO if self.info_color is not None:
-                    container.set_accent_color(self.info_color)
-                case logging.DEBUG if self.debug_color is not None:
-                    container.set_accent_color(self.debug_color)
-                case 5 if self.trace_color is not None:  # Loguru TRACE
-                    container.set_accent_color(self.trace_color)
-                case _:
-                    pass
-
-            if len(heading) + len(body) + len(footer) <= _RICH_TEXT_LIMIT:
-                webhook.add_component(container)
-            else:
-                webhook.components = UNSET
-                webhook.set_flag(MessageFlags.IS_COMPONENTS_V2, None)
-                webhook._remove_query_param("with_components")
-                webhook.add_attachment("message.txt", message.encode())
-        elif len(body) > _PLAIN_TEXT_LIMIT:
-            webhook.add_attachment("message.txt", message.encode())
-        else:
-            webhook.set_content(body)
+        )
 
         token = delivery_active.set(True)
         try:
-            webhook.execute()
+            webhook.execute(request_policy=self.request_policy)
         finally:
             delivery_active.reset(token)

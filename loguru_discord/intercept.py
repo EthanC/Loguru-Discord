@@ -36,6 +36,12 @@ class Intercept(Handler):
 
         self.level_map: dict[str, str] | None = level_map
 
+    def handle(self: Self, record: LogRecord) -> bool:
+        """Ignore delivery logs before acquiring the standard-library handler lock."""
+        if delivery_active.get():
+            return False
+        return super().handle(record)
+
     def emit(self: Self, record: LogRecord) -> None:
         """Forward a record to Loguru unless webhook delivery is active.
 
@@ -59,7 +65,9 @@ class Intercept(Handler):
         except ValueError:
             level = record.levelno
 
-        while frame and (depth == 0 or frame.f_code.co_filename == logging.__file__):
+        while frame and (
+            depth == 0 or frame.f_code.co_filename in {logging.__file__, __file__}
+        ):
             frame = frame.f_back
 
             depth += 1

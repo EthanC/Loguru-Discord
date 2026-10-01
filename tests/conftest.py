@@ -1,3 +1,4 @@
+import inspect
 import logging
 from collections.abc import Callable, Iterator
 from copy import deepcopy
@@ -20,7 +21,7 @@ def webhook_url() -> str:
 def deliveries(monkeypatch: pytest.MonkeyPatch) -> list[Webhook]:
     payloads: list[Webhook] = []
 
-    def execute(webhook: Webhook) -> Response:
+    def execute(webhook: Webhook, **options: Any) -> Response:
         payload = deepcopy(webhook)
         payload._validate()
         payloads.append(payload)
@@ -35,6 +36,7 @@ def deliveries(monkeypatch: pytest.MonkeyPatch) -> list[Webhook]:
 @pytest.fixture
 def add_sink() -> Iterator[Callable[..., int]]:
     handler_ids: list[int] = []
+    async_handler_ids: list[int] = []
 
     def add(sink: Any, **options: Any) -> int:
         options = {
@@ -45,11 +47,16 @@ def add_sink() -> Iterator[Callable[..., int]]:
             **options,
         }
         handler_id = logger.add(sink, **options)
-        handler_ids.append(handler_id)
+        if inspect.iscoroutinefunction(getattr(sink, "complete", None)):
+            async_handler_ids.append(handler_id)
+        else:
+            handler_ids.append(handler_id)
         return handler_id
 
     yield add
 
+    for handler_id in async_handler_ids:
+        logger.remove(handler_id)
     logger.complete()
     for handler_id in handler_ids:
         logger.remove(handler_id)

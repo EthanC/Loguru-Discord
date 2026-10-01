@@ -1,7 +1,7 @@
 from logging import Handler, LogRecord
 from pathlib import Path
 
-from clyde import Webhook
+from clyde import RequestPolicy, Webhook
 from msgspec import UNSET, UnsetType
 
 class DiscordSink(Handler):
@@ -22,6 +22,7 @@ class DiscordSink(Handler):
     intercept_level_map: dict[str, str] | None
     suppress: list[type[BaseException]] | None
     webhook: Webhook
+    request_policy: RequestPolicy
 
     def __init__(
         self,
@@ -42,5 +43,6 @@ class DiscordSink(Handler):
         intercept: bool = False,
         intercept_level_map: dict[str, str] | None = None,
         suppress: list[type[BaseException]] | None = None,
+        request_policy: RequestPolicy | None = None,
     ) -> None: ...
     def emit(self, record: LogRecord) -> None: ...
